@@ -41,7 +41,7 @@
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"" title:@"发现" rightBtnImgName:@"" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"" title:NSLocalizedString(@"发现", nil)rightBtnImgName:@"" delegate:self];
     }
     return _navView;
 }
@@ -59,9 +59,9 @@
         [layout setItemSize: CGSizeMake(SCREEN_WIDTH / 2 - 1, 66)];
         
         if (self.mainService.top4DataArray.count > 0) {
-            layout.headerReferenceSize = CGSizeMake(self.view.bounds.size.width, 310 + SCREEN_WIDTH * 0.40 );
+            layout.headerReferenceSize = CGSizeMake(self.view.bounds.size.width, 310 + CYCLESCROLLVIEW_HEIGHT);
         }else{
-            layout.headerReferenceSize = CGSizeMake(self.view.bounds.size.width, 206 + SCREEN_WIDTH * 0.40 );
+            layout.headerReferenceSize = CGSizeMake(self.view.bounds.size.width, 206 + CYCLESCROLLVIEW_HEIGHT );
         }
         
         layout.minimumLineSpacing = 1;
@@ -74,7 +74,6 @@
         [_mainCollectionView setShowsVerticalScrollIndicator: NO];
         
         [_mainCollectionView registerClass: [ApplicationCollectionViewCell class] forCellWithReuseIdentifier: CELL_REUSEIDENTIFIER];
-//        [_mainCollectionView registerNib:[UINib nibWithNibName:@"ApplicationHeaderView" bundle: nil] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:@"Cell_Header"];
         [_mainCollectionView registerClass:[ApplicationHeaderView class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:@"Cell_Header"];
         
     }
@@ -83,7 +82,6 @@
 
 -(void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
-    [self buildDataSource];
     if (LEETHEME_CURRENTTHEME_IS_SOCAIL_MODE) {
         self.navigationController.navigationBar.barStyle = UIBarStyleDefault;
     }else if(LEETHEME_CURRENTTHEME_IS_BLACKBOX_MODE){
@@ -101,33 +99,32 @@
     [self.view addSubview:self.navView];
     
     [self buildDataSource];
-    
 }
 
 - (void)buildDataSource{
     WS(weakSelf);
-    ApplicationHeaderViewModel *model = [[ApplicationHeaderViewModel alloc] init];
+    dispatch_group_t dispatchGroup = dispatch_group_create();
+    
+    dispatch_group_enter(dispatchGroup);
     [weakSelf.mainService applicationModuleHeaderRequest:^(id service, BOOL isSuccess) {
-        if (isSuccess) {
-            //界面刷新
-            [weakSelf.view addSubview:weakSelf.mainCollectionView];
-            [weakSelf configBannerView];
-            if (weakSelf.mainService.listDataArray) {
-                model.top4DataArray = (NSMutableArray *)weakSelf.mainService.top4DataArray;
-                [weakSelf.headerView updateViewWithModel:model];
-            }
-        }
+         dispatch_group_leave(dispatchGroup);
     }];
+    
+    dispatch_group_enter(dispatchGroup);
     [weakSelf.mainService applicationModuleBodyRequest:^(id service, BOOL isSuccess) {
-        model.starDataArray = (NSMutableArray *)weakSelf.mainService.starDataArray;
-        [weakSelf.headerView updateViewWithModel:model];
-        [weakSelf.mainCollectionView reloadData];
+         dispatch_group_leave(dispatchGroup);
     }];
+    
+    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+        [weakSelf.view addSubview:weakSelf.mainCollectionView];
+        [weakSelf.mainCollectionView reloadData];
+        [weakSelf configBannerView];
+    });
 }
 
 - (void)configBannerView{
     WS(weakSelf);
-    SDCycleScrollView *cycleScrollView = [SDCycleScrollView cycleScrollViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_WIDTH * 0.4) delegate:self placeholderImage:[UIImage imageNamed:@"account_default_blue"]];
+    SDCycleScrollView *cycleScrollView = [SDCycleScrollView cycleScrollViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, CYCLESCROLLVIEW_HEIGHT) delegate:self placeholderImage:[UIImage imageNamed:@"account_default_blue"]];
     cycleScrollView.imageURLStringsGroup = weakSelf.mainService.imageURLStringsGroup;
     cycleScrollView.bannerImageViewContentMode = UIViewContentModeScaleAspectFill;
     [weakSelf.headerView addSubview:cycleScrollView];
@@ -158,7 +155,7 @@
 -(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
     Application *model = (Application *)self.mainService.listDataArray[indexPath.item];
     
-    if ([model.applyName isEqualToString:@"有问币答"]) {
+    if ([model.applyName isEqualToString:NSLocalizedString(@"有问币答", nil)]) {
         QuestionListViewController *vc = [[QuestionListViewController alloc] init];
         [self.navigationController pushViewController:vc animated:YES];
     }else{
@@ -174,10 +171,17 @@
 
 -(UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath{
      UICollectionReusableView *reusableview = nil;
+    WS(weakSelf);
     if ([kind isEqualToString:UICollectionElementKindSectionHeader]) {
         if (indexPath.section == 0) {
             self.headerView = (ApplicationHeaderView *)[collectionView dequeueReusableSupplementaryViewOfKind:kind withReuseIdentifier:@"Cell_Header" forIndexPath:indexPath];
             self.headerView.delegate = self;
+            
+            ApplicationHeaderViewModel *model = [[ApplicationHeaderViewModel alloc] init];
+            model.top4DataArray = (NSMutableArray *)weakSelf.mainService.top4DataArray;
+            model.starDataArray = (NSMutableArray *)weakSelf.mainService.starDataArray;
+            [weakSelf configBannerView];
+            [weakSelf.headerView updateViewWithModel:model];
             return self.headerView;
         }
     }
@@ -219,7 +223,7 @@
 -(void)starApplicationBtnDidClick:(UIButton *)sender{
     if (self.mainService.starDataArray.count > 0) {
         Application *model = self.mainService.starDataArray[0];
-        if ([model.applyName isEqualToString:@"有问币答"]) {
+        if ([model.applyName isEqualToString:NSLocalizedString(@"有问币答", nil)]) {
             QuestionListViewController *vc = [[QuestionListViewController alloc] init];
             [self.navigationController pushViewController:vc animated:YES];
         }else{

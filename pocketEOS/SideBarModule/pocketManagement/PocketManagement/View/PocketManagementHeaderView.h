@@ -2,22 +2,22 @@
 //  PocketManagementHeaderView.h
 //  pocketEOS
 //
-//  Created by oraclechain on 2017/12/11.
-//  Copyright © 2017年 oraclechain. All rights reserved.
+//  Created by oraclechain on 2018/7/16.
+//  Copyright © 2018 oraclechain. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
+#import "BaseView.h"
 
 @protocol PocketManagementHeaderViewDelegate<NSObject>
-@optional
-- (void)createAccountBtnDidClick:(UIButton *)sender;
-- (void)importAccountBtnDidClick:(UIButton *)sender;
-- (void)backupPocketBtnDidClick:(UIButton *)sender;
-- (void)changePasswordBtnDidClick:(UIButton *)sender;
-- (void)mainAccountBtnDidClick:(UIButton *)sender;
-
+- (void)createAccountBtnDidClick;
+- (void)importAccountBtnDidClick;
+- (void)changePasswordBtnDidClick;
+- (void)backupWalletBtnDidClick;
 @end
 
-@interface PocketManagementHeaderView : BaseView
+
+@interface PocketManagementHeaderView : BaseHeaderView
+
 @property(nonatomic, weak) id<PocketManagementHeaderViewDelegate> delegate;
+
 @end

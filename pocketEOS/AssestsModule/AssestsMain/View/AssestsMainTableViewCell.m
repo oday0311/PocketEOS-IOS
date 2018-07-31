@@ -7,7 +7,7 @@
 //
 
 #import "AssestsMainTableViewCell.h"
-#import "Assests.h"
+#import "TokenInfo.h"
 
 @interface AssestsMainTableViewCell()
 
@@ -89,7 +89,7 @@
 - (UILabel *)lable_nowPrice{
     if (!_lable_nowPrice) {
         _lable_nowPrice = [[UILabel alloc] init];
-        _lable_nowPrice.text = @"现价";
+        _lable_nowPrice.text = NSLocalizedString(@"现价", nil);
         _lable_nowPrice.textColor = HEXCOLOR(0xB0B0B0 );
         _lable_nowPrice.font = [UIFont systemFontOfSize:14];
     }
@@ -123,17 +123,19 @@
         
         [self.contentView addSubview:self.bottomLineView];
         self.bottomLineView.sd_layout.leftSpaceToView(self.contentView, 73).bottomSpaceToView(self.contentView, 0).rightSpaceToView(self.contentView, 0).heightIs(DEFAULT_LINE_HEIGHT);
+        [self setSelectionStyle:(UITableViewCellSelectionStyleNone)];
     }
     return self;
 }
 
--(void)setModel:(Assests *)model{
-    self.assestsImg.image = [UIImage imageNamed:model.assests_avtar];
+-(void)setModel:(TokenInfo *)model{
+    self.assestsImg.image = [UIImage imageNamed:model.iconUrl];
+    [self.assestsImg sd_setImageWithURL:String_To_URL(model.iconUrl) placeholderImage:[UIImage imageNamed:@"account_default_blue"]];
 
-    self.assestsBalanceLable.text = [NSString stringWithFormat:@"%@ %@", VALIDATE_STRING([NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.assests_balance.doubleValue ]]), VALIDATE_STRING(model.assestsName)];
+    self.assestsBalanceLable.text = [NSString stringWithFormat:@"%@ %@", VALIDATE_STRING([NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.balance.doubleValue ]]), VALIDATE_STRING(model.token_symbol)];
     
-    self.assestsBalanceCnyLabel.text = [NSString stringWithFormat:@"≈%@ CNY", [NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.assests_balance_cny.doubleValue ]]];
+    self.assestsBalanceCnyLabel.text = [NSString stringWithFormat:@"≈%@ CNY", [NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.balance_cny.doubleValue ]]];
     
-    self.nowPriceLabel.text = [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.assests_price_cny.doubleValue ]]];
+    self.nowPriceLabel.text = [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.asset_price_cny.doubleValue ]]];
 }
 @end

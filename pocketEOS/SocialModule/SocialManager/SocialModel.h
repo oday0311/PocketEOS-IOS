@@ -8,6 +8,13 @@
 
 #import <Foundation/Foundation.h>
 
+
+typedef NS_ENUM(NSInteger, SocialModelType) {
+    SocialTypeQQ,
+    SocialTypeWechat
+};
+
+
 @interface SocialModel : NSObject
 
 /**
@@ -27,9 +34,17 @@
 
 
 /**
- 1 代表 qq 2 代表微信 不能有其他值
+ unionid
  */
-@property(nonatomic , copy) NSString *type;
+@property(nonatomic , copy) NSString *unionid;
+
+
+
+
+/**
+   qq 微信 
+ */
+@property(nonatomic , assign) SocialModelType socialModelType;
 
 
 @end

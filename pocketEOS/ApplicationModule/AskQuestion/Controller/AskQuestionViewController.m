@@ -17,7 +17,6 @@
 #import "TransferService.h"
 #import "PGDatePickManager.h"
 #import "TransactionResult.h"
-#import "LoginPasswordView.h"
 #import "AskQuestionTipView.h"
 #import "AskQuestion_abi_to_json_request.h"
 #import "ApproveAbi_json_to_bin_request.h"
@@ -39,7 +38,7 @@
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:@"我来提问" rightBtnTitleName:@"提交" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:NSLocalizedString(@"我来提问", nil)rightBtnTitleName:NSLocalizedString(@"提交", nil)delegate:self];
         _navView.leftBtn.lee_theme.LeeAddButtonImage(SOCIAL_MODE, [UIImage imageNamed:@"back"], UIControlStateNormal).LeeAddButtonImage(BLACKBOX_MODE, [UIImage imageNamed:@"back_white"], UIControlStateNormal);
         _navView.rightBtn.lee_theme.LeeAddButtonTitleColor(SOCIAL_MODE, HEXCOLOR(0x2A2A2A), UIControlStateNormal).LeeAddButtonTitleColor(BLACKBOX_MODE, HEX_RGB_Alpha(0xFFFFFF, 0.6), UIControlStateNormal);
     }
@@ -147,7 +146,7 @@
     if (indexPath.row == self.mainService.dataSourceArray.count ) {
         // 添加选项 cell
         if (self.mainService.dataSourceArray.count == 6) {
-            [TOASTVIEW showWithText:@"最多添加六个选项"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"最多添加六个选项", nil)];
         }else{
             // 当前的 count
             NSUInteger count = self.mainService.dataSourceArray.count ;
@@ -190,12 +189,12 @@
 
     if (IsStrEmpty(self.headerView.amountTF.text) || IsStrEmpty(self.headerView.chooseTimeLabel.text) || IsStrEmpty(self.headerView.titleTV.text) || IsStrEmpty(self.headerView.contentTV.text) || IsStrEmpty(self.headerView.chooseTimeLabel.text) || IsStrEmpty(answerArr[0]) ||
         IsStrEmpty(answerArr[1])) {
-        [TOASTVIEW showWithText:@"问题没有编辑完整, 请继续编辑!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"问题没有编辑完整, 请继续编辑!", nil)];
         return;
     }
     [self.view addSubview:self.askQuestionTipView];
     
-    NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:@"发布此问题将消费您 %@ OCT ", self.headerView.amountTF.text]];
+    NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat: @"%@ %@ OCT ", NSLocalizedString(@"发布此问题将消费您", nil), self.headerView.amountTF.text]];
     [attrString addAttribute:NSForegroundColorAttributeName
                        value:HEXCOLOR(0x2A2A2A)
                        range:NSMakeRange(0, 9)];
@@ -231,8 +230,8 @@
     
     // 验证密码输入是否正确
     Wallet *current_wallet = CURRENT_WALLET;
-    if (![NSString validateWalletPasswordWithSha256:current_wallet.wallet_shapwd password:self.loginPasswordView.inputPasswordTF.text]) {
-        [TOASTVIEW showWithText:@"密码输入错误!"];
+    if (![WalletUtil validateWalletPasswordWithSha256:current_wallet.wallet_shapwd password:self.loginPasswordView.inputPasswordTF.text]) {
+        [TOASTVIEW showWithText:NSLocalizedString(@"密码输入错误!", nil)];
         return;
     }
     
@@ -243,20 +242,20 @@
 // 押币
 - (void)approve{
     [SVProgressHUD show];
-    self.approveAbi_json_to_bin_request.action = @"approve";
-    self.approveAbi_json_to_bin_request.code = @"octoneos";
+    self.approveAbi_json_to_bin_request.action = ContractAction_APPROVE;
+    self.approveAbi_json_to_bin_request.code = ContractName_OCTOTHEMOON;
     self.approveAbi_json_to_bin_request.owner = self.choosedAccountName;
-    self.approveAbi_json_to_bin_request.spender = @"ocaskans";
+    self.approveAbi_json_to_bin_request.spender = ContractName_OCASKANS;
     self.approveAbi_json_to_bin_request.quantity = [NSString stringWithFormat:@"%.4f OCT", self.headerView.amountTF.text.doubleValue];
     WS(weakSelf);
     [self.approveAbi_json_to_bin_request postOuterDataSuccess:^(id DAO, id data) {
         #pragma mark -- [@"data"]
         NSLog(@"approve_abi_to_json_request_success: --binargs: %@",data[@"data"][@"binargs"] );
         AccountInfo *accountInfo = [[AccountsTableManager accountTable] selectAccountTableWithAccountName:self.choosedAccountName];
-        weakSelf.transferService.available_keys = @[accountInfo.account_owner_public_key , accountInfo.account_active_public_key];
-        weakSelf.transferService.action = @"approve";
+        weakSelf.transferService.available_keys = @[VALIDATE_STRING(accountInfo.account_owner_public_key) , VALIDATE_STRING(accountInfo.account_active_public_key)];
+        weakSelf.transferService.action = ContractAction_APPROVE;
         weakSelf.transferService.sender = self.choosedAccountName;
-        weakSelf.transferService.code = @"octoneos";
+        weakSelf.transferService.code = ContractName_OCTOTHEMOON;
         #pragma mark -- [@"data"]
         weakSelf.transferService.binargs = data[@"data"][@"binargs"];
         weakSelf.transferService.pushTransactionType = PushTransactionTypeApprove;
@@ -298,8 +297,8 @@
         [json insertString:insertStr atIndex: json.length - 1];
     }
     
-    self.askQuestion_abi_to_json_request.code = @"ocaskans";
-    self.askQuestion_abi_to_json_request.action = @"ask";
+    self.askQuestion_abi_to_json_request.code = ContractName_OCASKANS;
+    self.askQuestion_abi_to_json_request.action = ContractAction_ASK;
     self.askQuestion_abi_to_json_request.from = self.choosedAccountName;
     self.askQuestion_abi_to_json_request.quantity = [NSString stringWithFormat:@"%.4f OCT", self.headerView.amountTF.text.doubleValue];
     self.askQuestion_abi_to_json_request.endtime = self.endTimetamp;
@@ -311,10 +310,10 @@
         #pragma mark -- [@"data"]
         NSLog(@"askQuestion_abi_to_json_request_success: --binargs: %@",data[@"data"][@"binargs"] );
         AccountInfo *accountInfo = [[AccountsTableManager accountTable] selectAccountTableWithAccountName:self.choosedAccountName];
-        weakSelf.transferService.available_keys = @[accountInfo.account_owner_public_key , accountInfo.account_active_public_key];
-        weakSelf.transferService.action = @"ask";
+        weakSelf.transferService.available_keys = @[VALIDATE_STRING(accountInfo.account_owner_public_key) , VALIDATE_STRING(accountInfo.account_active_public_key)];
+        weakSelf.transferService.action = ContractAction_ASK;
         weakSelf.transferService.sender = weakSelf.choosedAccountName;
-        weakSelf.transferService.code = @"ocaskans";
+        weakSelf.transferService.code = ContractName_OCASKANS;
         #pragma mark -- [@"data"]
         weakSelf.transferService.binargs = data[@"data"][@"binargs"];
         weakSelf.transferService.pushTransactionType = PushTransactionTypeAskQustion;
@@ -331,13 +330,13 @@
 //transferserviceDelegate
 extern NSString *AskQuestionDidSuccessNotification;
 -(void)askQuestionDidFinish:(TransactionResult *)result{
-//    if ([result.code isEqualToNumber:@0 ]) {
-        [TOASTVIEW showWithText:@"提问成功!"];
+    if ([result.code isEqualToNumber:@0 ]) {
+        [TOASTVIEW showWithText:NSLocalizedString(@"提问成功!", nil)];
         [[NSNotificationCenter defaultCenter] postNotificationName:AskQuestionDidSuccessNotification object:nil];
         [self.navigationController popViewControllerAnimated:YES];
-//    }else{
-//        [TOASTVIEW showWithText: result.message];
-//    }
+    }else{
+        [TOASTVIEW showWithText: result.message];
+    }
 }
 
 -(void)approveDidFinish:(TransactionResult *)result{
@@ -363,9 +362,9 @@ extern NSString *AskQuestionDidSuccessNotification;
     datePicker.textColorOfSelectedRow = HEXCOLOR(0x2B2B2B);
      datePicker.textColorOfOtherRow = HEXCOLOR(0xDDDDDD);
     datePickManager.cancelButtonTextColor = HEXCOLOR(0xB0B0B0);
-    datePickManager.cancelButtonText = @"取消";
+    datePickManager.cancelButtonText = NSLocalizedString(@"取消", nil);
     datePickManager.confirmButtonTextColor = HEXCOLOR(0xB0B0B0);
-    datePickManager.confirmButtonText = @"确定";
+    datePickManager.confirmButtonText = NSLocalizedString(@"确定", nil);
     [self presentViewController:datePickManager animated:false completion:nil];
 }
 
@@ -380,6 +379,9 @@ extern NSString *AskQuestionDidSuccessNotification;
     self.endTimetamp = [NSNumber numberWithInteger:(int)timeStamp];
 }
 
+-(void)dealloc{
+     [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
 
 
 @end

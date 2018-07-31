@@ -12,33 +12,40 @@
 
 
 @interface AssestsMainHeaderView()
-@property(nonatomic, strong) UIImageView *accountQRCodeImg;
+@property (weak, nonatomic) IBOutlet UIImageView *addAssestsImageView;
+@property (weak, nonatomic) IBOutlet UIView *topBackgroundView;
 @end
 
 @implementation AssestsMainHeaderView
 
-- (UIImageView *)accountQRCodeImg{
-    if (!_accountQRCodeImg) {
-        _accountQRCodeImg = [[UIImageView alloc] init];
-        _accountQRCodeImg.image = [UIImage imageNamed:@"QRCode_small_white"];
-        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(touchUpinsideAccounLabel)];
-        self.userAccountLabel.userInteractionEnabled = YES;
-        self.accountQRCodeImg.userInteractionEnabled = YES;
-        [self.userAccountLabel addGestureRecognizer:tap];
-        [self.accountQRCodeImg addGestureRecognizer:tap];
+- (NSMutableArray *)tokenInfoDataArray{
+    if (!_tokenInfoDataArray) {
+        _tokenInfoDataArray = [[NSMutableArray alloc] init];
     }
-    return _accountQRCodeImg;
+    return _tokenInfoDataArray;
 }
 
 -(void)awakeFromNib{
     [super awakeFromNib];
-    self.avatarImg.userInteractionEnabled = YES;
     self.userAccountLabel.userInteractionEnabled = YES;
     
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(avatarImgDidTap)];
-    [self.avatarImg addGestureRecognizer:tap];
-    
+    CAGradientLayer *layer = [CAGradientLayer layer];
+    layer.frame = CGRectMake(0, 0, SCREEN_WIDTH, 500);
+    layer.startPoint = CGPointMake(0, 1);
+    layer.endPoint = CGPointMake(0, 0);
+    if (LEETHEME_CURRENTTHEME_IS_SOCAIL_MODE) {
+        layer.colors = @[(__bridge id)HEXCOLOR(0x095CE5).CGColor, (__bridge id)HEXCOLOR(0x3574FA).CGColor];
+    }else if (LEETHEME_CURRENTTHEME_IS_BLACKBOX_MODE){
+        layer.colors = @[(__bridge id)HEXCOLOR(0x23242A).CGColor, (__bridge id)HEXCOLOR(0x282828).CGColor];
+    }
+    layer.locations = @[@(0.0f), @(1.0f)];
+    [self.topBackgroundView.layer addSublayer:layer];
+
     [self.totalAssetsLabel setFont:[UIFont boldSystemFontOfSize:36]];
+    
+    
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(addAssestsImageDidTap)];
+    [self.addAssestsImageView addGestureRecognizer:tap];
     
 }
 
@@ -63,11 +70,28 @@
 }
 
 - (IBAction)redPacketBtnDidClick:(UIButton *)sender {
-    if (!self.redPacketBtnDidClickBlock) {
+    if (LEETHEME_CURRENTTHEME_IS_BLACKBOX_MODE) {
+        [TOASTVIEW showWithText:NSLocalizedString(@"请移步至社交模式", nil)];
+        return;
+    }else{
+        if (!self.redPacketBtnDidClickBlock) {
+            return;
+        }
+        self.redPacketBtnDidClickBlock();
+        
+    }
+}
+
+
+- (IBAction)ramTradeBtnDidClick:(UIButton *)sender {
+    if (!self.ramTradeBtnDidClickBlock) {
         return;
     }
-    self.redPacketBtnDidClickBlock();
+    self.ramTradeBtnDidClickBlock();
 }
+
+
+
 
 - (IBAction)totalAssestVisible:(UIButton *)sender {
     
@@ -76,15 +100,12 @@
     [[NSUserDefaults standardUserDefaults] synchronize];
     
     NSLog(@"%@", [[NSUserDefaults standardUserDefaults] objectForKey: Total_assets_visibel]);
-    if (_model) {
-        [self setModel:_model];
-    }
+    [self updateViewWithDataArray:self.tokenInfoDataArray];
 }
 
 -(void)setModel:(Account *)model{
     _model = model;
     Wallet *wallet = CURRENT_WALLET;
-    [self.avatarImg sd_setImageWithURL:String_To_URL(wallet.wallet_img) placeholderImage:[UIImage imageNamed:@"wallet_default_avatar"]];
     NSString *nameStr = nil;
     if ([RegularExpression validateMobile:wallet.wallet_name]) {
         nameStr = [wallet.wallet_name substringFromIndex:wallet.wallet_name.length - 4];
@@ -92,24 +113,39 @@
         nameStr = wallet.wallet_name ;
     }
     if (nameStr.length > 0) {
-        self.userNameLabel.text = [NSString stringWithFormat:@"%@的钱包", VALIDATE_STRING(nameStr)];
+        self.userNameLabel.text = [NSString stringWithFormat: @"%@%@", VALIDATE_STRING(nameStr), NSLocalizedString(@"的钱包", nil)];
     }else{
-        self.userNameLabel.text = [NSString stringWithFormat:@"***的钱包"];
+        self.userNameLabel.text = [NSString stringWithFormat: @"***%@", NSLocalizedString(@"的钱包", nil)];
     }
     
     NSArray *accountArr = [[AccountsTableManager accountTable] selectAccountTable];
     if (accountArr.count == 0) {
-        self.userAccountLabel.text = [NSString stringWithFormat:@"没有账号"] ;
+        self.userAccountLabel.text = [NSString stringWithFormat:NSLocalizedString(@"没有账号", nil)] ;
     }else{
         self.userAccountLabel.text = [NSString stringWithFormat:@"%@", VALIDATE_STRING(model.account_name) ] ;
         
     }
     
-    [self addSubview:self.accountQRCodeImg];
-    self.accountQRCodeImg.sd_layout.leftSpaceToView(self.userAccountLabel, 5).centerYEqualToView(self.userAccountLabel).widthIs(13).heightIs(13);
+//    if ( [[[NSUserDefaults standardUserDefaults] objectForKey: Total_assets_visibel] isEqual:@1]) {
+//        self.totalAssetsLabel.text = [NSString stringWithFormat:@"≈%@", [NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.eos_balance.doubleValue * model.eos_price_cny.doubleValue + model.oct_balance.doubleValue * model.oct_price_cny.doubleValue]]];
+//        [self.totalAssestsVisibleBtn setImage:[UIImage imageNamed:@"eye_open"] forState:(UIControlStateNormal)];
+//    }else{
+//        [self.totalAssestsVisibleBtn setImage:[UIImage imageNamed:@"eye_close"] forState:(UIControlStateNormal)];
+//        self.totalAssetsLabel.text = @"******";
+//    }
+    
+}
+
+
+- (void)updateViewWithDataArray:(NSMutableArray<TokenInfo *> *)dataArray{
+    self.tokenInfoDataArray = dataArray;
+    double totalBalanceCnyValue =0;
+    for (TokenInfo *model in dataArray) {
+        totalBalanceCnyValue += model.balance_cny.doubleValue;
+    }
     
     if ( [[[NSUserDefaults standardUserDefaults] objectForKey: Total_assets_visibel] isEqual:@1]) {
-        self.totalAssetsLabel.text = [NSString stringWithFormat:@"≈%@", [NumberFormatter displayStringFromNumber:[NSNumber numberWithDouble:model.eos_balance.doubleValue * model.eos_price_cny.doubleValue + model.oct_balance.doubleValue * model.oct_price_cny.doubleValue]]];
+        self.totalAssetsLabel.text = [NSString stringWithFormat:@"≈%.4f", totalBalanceCnyValue];
         [self.totalAssestsVisibleBtn setImage:[UIImage imageNamed:@"eye_open"] forState:(UIControlStateNormal)];
     }else{
         [self.totalAssestsVisibleBtn setImage:[UIImage imageNamed:@"eye_close"] forState:(UIControlStateNormal)];
@@ -118,17 +154,18 @@
     
 }
 
-- (void)touchUpinsideAccounLabel{
-    if (!self.accountQRCodeImgDidTapBlock) {
+- (IBAction)accountBtnDidClick:(UIButton *)sender {
+    if (!self.accountBtnDidTapBlock) {
         return;
     }
-    self.accountQRCodeImgDidTapBlock();
+    self.accountBtnDidTapBlock();
 }
 
-- (void)avatarImgDidTap{
-    if (!self.avatarImgDidTapBlock) {
+- (void)addAssestsImageDidTap{
+    if (!self.addAssestsImgDidTapBlock) {
         return;
     }
-    self.avatarImgDidTapBlock();
+    self.addAssestsImgDidTapBlock();
 }
+
 @end

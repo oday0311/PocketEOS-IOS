@@ -35,7 +35,7 @@
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"" title:@"富豪榜" rightBtnImgName:@"" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"" title:NSLocalizedString(@"富豪榜", nil)rightBtnImgName:@"" delegate:self];
     }
     return _navView;
 }
@@ -77,6 +77,7 @@
 
     [self.view addSubview:self.navView];
     [self.view addSubview:self.mainTableView];
+    self.mainTableView.frame = CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - NAVIGATIONBAR_HEIGHT-TABBAR_HEIGHT);
     [self.mainTableView setTableHeaderView: self.headerView];
     self.mainTableView.mj_header.hidden = YES;
     self.mainTableView.mj_footer.hidden = YES;
@@ -103,7 +104,7 @@
     WS(weakSelf);
     [self.headerView setOnSearchFriendsBlock:^{
         // Create a search view controller
-        PYSearchViewController *searchViewController = [PYSearchViewController searchViewControllerWithHotSearches:nil searchBarPlaceholder:@"搜索好友" didSearchBlock:^(PYSearchViewController *searchViewController, UISearchBar *searchBar, NSString *searchText) {
+        PYSearchViewController *searchViewController = [PYSearchViewController searchViewControllerWithHotSearches:nil searchBarPlaceholder:NSLocalizedString(@"搜索好友", nil)didSearchBlock:^(PYSearchViewController *searchViewController, UISearchBar *searchBar, NSString *searchText) {
             // Called when search begain.
             // eg：Push to a temp view controller
             [searchViewController.navigationController pushViewController:[[UIViewController alloc] init] animated:YES];

@@ -10,7 +10,6 @@
 #import "SideBarViewController.h"
 #import "UIViewController+CWLateralSlide.h"
 #import "SDCycleScrollView.h"
-#import "PopUpWindow.h"
 #import "NavigationView.h"
 #import "NewsService.h"
 #import "News.h"
@@ -21,10 +20,12 @@
 #import "Assest.h"
 #import "NewsResult.h"
 #import "BaseTabBarController.h"
+#import "ScrollMenuView.h"
 
-@interface NewsMainViewController ()<UIGestureRecognizerDelegate, SDCycleScrollViewDelegate , UITableViewDelegate, UITableViewDataSource, NavigationViewDelegate, NewsMainHeaderViewDelegate, PopUpWindowDelegate>
+
+@interface NewsMainViewController ()<UIGestureRecognizerDelegate, SDCycleScrollViewDelegate , UITableViewDelegate, UITableViewDataSource, NavigationViewDelegate, NewsMainHeaderViewDelegate, ScrollMenuViewDelegate>
 @property(nonatomic, strong) NewsMainHeaderView *newsMainHeaderView;
-@property(nonatomic, strong) PopUpWindow *popUpWindow;
+@property(nonatomic , strong) ScrollMenuView *scrollMenuView;
 @property(nonatomic, strong) NavigationView *navView;
 @property(nonatomic, strong) NewsService *mainService;
 @property(nonatomic, strong) NewsBannerService *bannerService;
@@ -39,28 +40,31 @@
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"" title:@"新闻" rightBtnImgName:@"" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"" title:NSLocalizedString(@"新闻", nil)rightBtnImgName:@"" delegate:self];
     }
     return _navView;
 }
 
-
-- (PopUpWindow *)popUpWindow{
-    if (!_popUpWindow) {
-        _popUpWindow = [[PopUpWindow alloc] initWithFrame:(CGRectMake(0, NAVIGATIONBAR_HEIGHT + SCREEN_WIDTH *0.4 + 48, SCREEN_WIDTH, SCREEN_HEIGHT - NAVIGATIONBAR_HEIGHT - SCREEN_WIDTH *0.4 - 48 ))];
-        _popUpWindow.delegate = self;
-    }
-    return _popUpWindow;
-}
-
 - (NewsMainHeaderView *)newsMainHeaderView{
     if (!_newsMainHeaderView) {
-        _newsMainHeaderView = [[NewsMainHeaderView alloc] initWithFrame:(CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, SCREEN_WIDTH *0.4 + 48))];
+        _newsMainHeaderView = [[NewsMainHeaderView alloc] initWithFrame:(CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, CYCLESCROLLVIEW_HEIGHT + 48))];
         _newsMainHeaderView.delegate = self;
         _newsMainHeaderView.scrollView.delegate = self;
+        _newsMainHeaderView.scrollMenuView.delegate = self;
     }
     return _newsMainHeaderView;
 }
+
+- (ScrollMenuView *)scrollMenuView{
+    if (!_scrollMenuView) {
+        _scrollMenuView = [[ScrollMenuView alloc] init];
+        _scrollMenuView.frame = CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, MENUSCROLLVIEW_HEIGHT);
+        _scrollMenuView.delegate = self;
+        _scrollMenuView.hidden = YES;
+    }
+    return _scrollMenuView;
+}
+
 
 
 - (NewsService *)mainService{
@@ -89,23 +93,32 @@
     [self.view addSubview:self.mainTableView];
     self.mainTableView.frame = CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - NAVIGATIONBAR_HEIGHT - TABBAR_HEIGHT);
     [self.mainTableView setTableHeaderView:self.newsMainHeaderView];
+    [self.view addSubview:self.scrollMenuView];
     
-    [self loadAllBlocks];
     [self.mainTableView.mj_header beginRefreshing];
     [self requestNewsBanner];
+    [self requestAllAssetCategory];
     
-    WS(weakSelf);
-    [self.mainService GetAssetCategoryAllRequest:^(NSMutableArray *assestsArray, BOOL isSuccess) {
-        if (isSuccess) {
-            weakSelf.allAssetsArray = assestsArray;
-        }
-    }];
     UIScreenEdgePanGestureRecognizer *leftEdgeGesture = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(moveViewWithGesture:)];
     leftEdgeGesture.edges = UIRectEdgeLeft;
     [self.view addGestureRecognizer:leftEdgeGesture];
     leftEdgeGesture.delegate = self;
 }
 
+- (void)requestAllAssetCategory{
+    WS(weakSelf);
+    [self.mainService GetAssetCategoryAllRequest:^(NSMutableArray *assestsArray, BOOL isSuccess) {
+        if (isSuccess) {
+            if (assestsArray.count > 0) {
+                weakSelf.allAssetsArray = assestsArray;
+                [weakSelf.newsMainHeaderView.scrollMenuView updateViewWithAssestsArray:assestsArray];
+                [weakSelf.scrollMenuView updateViewWithAssestsArray:assestsArray];
+                
+                
+            }
+        }
+    }];
+}
 
 /**
  请求轮播图数据
@@ -119,14 +132,6 @@
         }
         
     }];
-}
-
-- (void)loadAllBlocks{
-    WS(weakSelf);
-    [self.popUpWindow setOnBottomViewDidClick:^{
-        [weakSelf removePopUpWindow];
-    }];
-    
 }
 
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
@@ -152,7 +157,7 @@
         vc.urlStr = news.newsUrl;
         [self.navigationController pushViewController:vc animated:YES];
     }else{
-        [TOASTVIEW showWithText:@"新闻地址有误!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"链接地址有误!", nil)];
     }
 }
 
@@ -192,50 +197,33 @@
                 vc.urlStr = news.newsUrl;
                 [self.navigationController pushViewController:vc animated:YES];
             }else{
-                [TOASTVIEW showWithText:@"新闻地址有误!"];
+                [TOASTVIEW showWithText:NSLocalizedString(@"新闻地址有误!", nil)];
             }
         }
     }
 }
 
-// NewsMainHeaderViewDelegate
-- (void)currentAssestsLabelDidTap:(UITapGestureRecognizer *)sender{
-    [self.view addSubview:self.popUpWindow];
-    
-    UIView *a = [(BaseTabBarController *)self.parentViewController.parentViewController view];
-    [a sendSubviewToBack:[(BaseTabBarController *)self.parentViewController.parentViewController tabBar]];
-    self.popUpWindow.type = PopUpWindowTypeAssest;
-    if (IsStrEmpty(self.selectAssests) && (self.allAssetsArray.count > 0)) {
-        Assest *model = self.allAssetsArray[0];
-        model.selected = YES;
-    }else{
-        for (Assest *model in self.allAssetsArray) {
-            if ([model.assetName isEqualToString:self.selectAssests]) {
-                model.selected = YES;
-            }else{
-                model.selected = NO;
-            }
-        }
-    }
-    [self.popUpWindow updateViewWithArray:self.allAssetsArray title:@""];
-}
-
-// PopUpWindowDelegate
--(void)popUpWindowdidSelectItem:(id )sender{
-    Assest *assest = sender;
+//ScrollMenuViewDelegate
+- (void)menuScrollViewItemBtnDidClick:(UIButton *)sender{
+    Assest *assest = self.allAssetsArray[sender.tag-1000];
     self.selectAssests = assest.assetName;
-    self.newsMainHeaderView.currentAssestsLabel.text = [NSString stringWithFormat:@"%@", self.selectAssests];
     self.mainService.newsRequest.assetCategoryId = assest.ID;
-    [self removePopUpWindow];
     [self loadNewData];
 }
 
-- (void)removePopUpWindow{
-    [self.popUpWindow removeFromSuperview];
-    UIView *a = [(BaseTabBarController *)self.parentViewController.parentViewController view];
-    [a bringSubviewToFront:[(BaseTabBarController *)self.parentViewController.parentViewController tabBar]];
-}
 
+-(void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    WS(weakSelf);
+    if (scrollView.contentOffset.y > CYCLESCROLLVIEW_HEIGHT) {
+        [UIView animateWithDuration:1 animations:^{
+            weakSelf.scrollMenuView.hidden = NO;
+        }];
+    }else{
+        [UIView animateWithDuration:1 animations:^{
+            weakSelf.scrollMenuView.hidden = YES;
+        }];
+    }
+}
 
 #pragma mark UITableView + 下拉刷新 隐藏时间 + 上拉加载
 #pragma mark - 数据处理相关
@@ -288,3 +276,4 @@
     }];
 }
 @end
+

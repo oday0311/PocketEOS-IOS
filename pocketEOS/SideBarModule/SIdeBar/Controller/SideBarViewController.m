@@ -23,7 +23,7 @@
 #import "CandyMainViewController.h"
 #import "BackupAccountViewController.h"
 #import "BPVoteViewController.h"
-#import "BindPhoneNumberViewController.h"
+
 
 @interface SideBarViewController ()<WalletQRCodeViewDelegate, SideBarMainViewDelegate >
 
@@ -46,6 +46,9 @@
         _sideBarMainView = [[[NSBundle mainBundle] loadNibNamed:@"SideBarMainView" owner:nil options:nil] firstObject];
         _sideBarMainView.delegate = self;
         _sideBarMainView.frame = CGRectMake(0, STATUSBAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - STATUSBAR_HEIGHT);
+        _sideBarMainView.contentSize = CGSizeMake(SCREEN_WIDTH, 2000);
+        _sideBarMainView.scrollEnabled = YES;
+        
     }
     return _sideBarMainView;
 }
@@ -66,9 +69,9 @@
      [self.navigationController.navigationBar setHidden: YES];
     Wallet *model = CURRENT_WALLET;
     if (IsStrEmpty(model.wallet_name)) {
-        self.sideBarMainView.nameLabel.text = [NSString stringWithFormat:@"******的钱包"];
+        self.sideBarMainView.nameLabel.text = [NSString stringWithFormat: @"******%@",NSLocalizedString(@"的钱包", nil)];
     }else{
-        self.sideBarMainView.nameLabel.text = [NSString stringWithFormat:@"%@的钱包", model.wallet_name];
+        self.sideBarMainView.nameLabel.text = [NSString stringWithFormat: @"%@%@", VALIDATE_STRING(model.wallet_name), NSLocalizedString(@"的钱包", nil)];
         
     }
     [self.sideBarMainView.avatarImg sd_setImageWithURL:String_To_URL(VALIDATE_STRING(model.wallet_img)) placeholderImage:[UIImage imageNamed:@"wallet_default_avatar"]];
@@ -84,8 +87,6 @@
     [super viewDidLoad];
     [self.view addSubview:self.sideBarUpBackgroundView];
     [self.view addSubview:self.sideBarMainView];
-    
-    
 }
 
 //SideBarMainViewDelegate
@@ -109,13 +110,6 @@
     [self cw_pushViewController:vc];
 }
 
-- (void)managePocketBtnDidClick:(id)sender{
-    PocketManagementViewController *vc = [[PocketManagementViewController alloc] init];
-    [self cw_pushViewController:vc];
-}
-
-
-
 - (void)transactionRecordBtnDidClick:(UIButton *)sender{
     TransactionRecordsViewController *vc = [[TransactionRecordsViewController alloc] init];
     [self cw_pushViewController:vc];
@@ -134,7 +128,6 @@
 -(void)bp_voteBtnDidClick:(UIButton *)sender{
     BPVoteViewController *vc = [[BPVoteViewController alloc] init];
     [self cw_pushViewController:vc];
-    
 }
 
 - (void)feedBackBtnDidClick:(UIButton *)sender{

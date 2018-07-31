@@ -8,8 +8,7 @@
 
 #import "BaseViewController.h"
 
-@interface BaseViewController ()<UIGestureRecognizerDelegate,UITableViewDelegate , UITableViewDataSource, UICollectionViewDelegate, UICollectionViewDataSource>
-@property (nonatomic,strong) UIView *noDataView;
+@interface BaseViewController ()<  UICollectionViewDelegate, UICollectionViewDataSource>
 
 
 @end
@@ -90,7 +89,6 @@
     // Do any additional setup after loading the view.
     [self.navigationController.navigationBar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
     [self.navigationController.navigationBar setShadowImage:[UIImage new]];
-    
     self.navigationController.interactivePopGestureRecognizer.delegate = self;
     self.view.lee_theme.LeeConfigBackgroundColor(@"baseView_background_color");
     if (LEETHEME_CURRENTTHEME_IS_SOCAIL_MODE) {
@@ -100,10 +98,5 @@
     }
 
 }
-
-
-
-
-
 
 @end

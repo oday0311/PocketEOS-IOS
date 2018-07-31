@@ -37,7 +37,7 @@
 }
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:[self.socialPlatformType isEqualToString:@"wechat"] ? @"解绑微信" : @"解绑QQ" rightBtnImgName:@"" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:[self.socialPlatformType isEqualToString:@"wechat"] ? NSLocalizedString(@"解绑微信", nil): NSLocalizedString(@"解绑QQ", nil)rightBtnImgName:@"" delegate:self];
         _navView.leftBtn.lee_theme.LeeAddButtonImage(SOCIAL_MODE, [UIImage imageNamed:@"back"], UIControlStateNormal).LeeAddButtonImage(BLACKBOX_MODE, [UIImage imageNamed:@"back_white"], UIControlStateNormal);
     }
     return _navView;
@@ -47,6 +47,7 @@
     if (!_headerView) {
         _headerView = [[[NSBundle mainBundle] loadNibNamed:@"UnBindSocialPlatformHeaderView" owner:nil options:nil] firstObject];
         _headerView.frame = CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, 320);
+        _headerView.delegate = self;
     }
     return _headerView;
 }
@@ -60,10 +61,10 @@
     
     if ([self.socialPlatformType isEqualToString:@"wechat"]) {
         self.headerView.platformImg.image = [UIImage imageNamed:@"wechat_big"];
-        self.headerView.tipLabel.text = [NSString stringWithFormat:@"绑定微信号%@", self.socialPlatformName];
+        self.headerView.tipLabel.text = [NSString stringWithFormat: @"%@%@",NSLocalizedString(@"绑定微信号", nil), self.socialPlatformName];
     }else if ([self.socialPlatformType isEqualToString:@"qq"]){
         self.headerView.platformImg.image = [UIImage imageNamed:@"qq_big"];
-        self.headerView.tipLabel.text = [NSString stringWithFormat:@"绑定QQ号%@", self.socialPlatformName];
+        self.headerView.tipLabel.text = [NSString stringWithFormat: @"%@%@", NSLocalizedString(@"绑定QQ号", nil), self.socialPlatformName];
         
     }
 }
@@ -78,7 +79,7 @@
         [self.unbindWechatRequest postDataSuccess:^(id DAO, id data) {
             NSNumber *code = data[@"code"];
             if ([code isEqualToNumber:@0]) {
-                [[WalletTableManager walletTable] executeUpdate:[NSString stringWithFormat:@"UPDATE %@ SET wallet_weixin = '%@' WHERE wallet_uid = '%@'", WALLET_TABLE ,@"(null)" , CURRENT_WALLET_UID]];
+                [[WalletTableManager walletTable] executeUpdate:[NSString stringWithFormat:@"UPDATE %@ SET wallet_weixin = '%@' WHERE wallet_uid = '%@'", WALLET_TABLE ,DATABASE_NULLVALUE , CURRENT_WALLET_UID]];
             }
             [TOASTVIEW showWithText:VALIDATE_STRING(data[@"message"])];
             [weakSelf.navigationController popViewControllerAnimated:YES];
@@ -92,7 +93,7 @@
         [self.unbindQQRequest postDataSuccess:^(id DAO, id data) {
             NSNumber *code = data[@"code"];
             if ([code isEqualToNumber:@0]) {
-                [[WalletTableManager walletTable] executeUpdate:[NSString stringWithFormat:@"UPDATE %@ SET wallet_qq = '%@' WHERE wallet_uid = '%@'", WALLET_TABLE , @"(null)" , CURRENT_WALLET_UID]];
+                [[WalletTableManager walletTable] executeUpdate:[NSString stringWithFormat:@"UPDATE %@ SET wallet_qq = '%@' WHERE wallet_uid = '%@'", WALLET_TABLE , DATABASE_NULLVALUE , CURRENT_WALLET_UID]];
             }
             [TOASTVIEW showWithText:VALIDATE_STRING(data[@"message"])];
             [weakSelf.navigationController popViewControllerAnimated:YES];

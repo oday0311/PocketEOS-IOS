@@ -132,7 +132,8 @@
             
             NSString *js = @"function readUint32( tid, data, offset ){var hexNum= data.substring(2*offset+6,2*offset+8)+data.substring(2*offset+4,2*offset+6)+data.substring(2*offset+2,2*offset+4)+data.substring(2*offset,2*offset+2);var ret = parseInt(hexNum,16).toString(10);return(ret)}";
             [weakSelf.context evaluateScript:js];
-            JSValue *n = [weakSelf.context[@"readUint32"] callWithArguments:@[@8, model.head_block_id, @8]];
+            JSValue *n = [weakSelf.context[@"readUint32"] callWithArguments:@[@8,VALIDATE_STRING(model.head_block_id) , @8]];
+            
             weakSelf.ref_block_prefix = [n toString];
             
             weakSelf.chain_Id = [NSObject convertHexStrToData:model.chain_id];
@@ -159,13 +160,14 @@
     
     WS(weakSelf);
     self.getRequiredPublicKeyRequest.showActivityIndicator = YES;
+    
     [self.getRequiredPublicKeyRequest postOuterDataSuccess:^(id DAO, id data) {
         #pragma mark -- [@"data"]
         if ([data[@"code"] isEqualToNumber:@0 ]) {
             weakSelf.required_Publickey = data[@"data"][@"required_keys"][0];
             NSLog(@"get_required_keys_success: -- %@",data[@"data"][@"required_keys"][0]);//
             [weakSelf pushTransactionRequestOperation];
-            
+
         }else{
             [TOASTVIEW showWithText: VALIDATE_STRING(data[@"message"])];
         }
@@ -183,7 +185,7 @@
     }else if ([accountInfo.account_active_public_key isEqualToString:self.required_Publickey]) {
         wif = [AESCrypt decrypt:accountInfo.account_active_private_key password:self.password];
     }else{
-        [TOASTVIEW showWithText:@"未找到账号的私钥!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"未找到账号的私钥!", nil)];
         return;
     }
     const int8_t *private_key = [[EOS_Key_Encode getRandomBytesDataWithWif:wif] bytes];
@@ -251,6 +253,11 @@
                     [weakSelf.delegate answerQuestionDidFinish:result];
                 }
                 
+            }else if (weakSelf.pushTransactionType == PushTransactionTypeRegisteVoteSystem){
+                if (weakSelf.delegate && [weakSelf.delegate respondsToSelector:@selector(registeToVoteSystemQuestionDidFinish:)]) {
+                    [weakSelf.delegate registeToVoteSystemQuestionDidFinish:result];
+                }
+                
             }
         } failure:^(id DAO, NSError *error) {
             NSLog(@"responseERROR:%@", [NSJSONSerialization JSONObjectWithData:error.userInfo[AFNetworkingOperationFailingURLResponseDataErrorKey] options:NSJSONReadingMutableContainers error:nil]);
@@ -277,6 +284,7 @@
 
 - (void)getRichlistAccount:(CompleteBlock)complete{
     WS(weakSelf);
+    
     [self.richListRequest postDataSuccess:^(id DAO, id data) {
         [weakSelf.richListDataArray removeAllObjects];
         RichListResult *result = [RichListResult mj_objectWithKeyValues:data];

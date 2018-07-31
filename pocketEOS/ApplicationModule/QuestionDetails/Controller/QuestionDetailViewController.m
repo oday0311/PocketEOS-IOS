@@ -11,7 +11,6 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 #import "Question.h"
 #import "TransferService.h"
-#import "LoginPasswordView.h"
 #import "AnswerQuestion_abi_json_to_bin_request.h"
 #import "ApproveAbi_json_to_bin_request.h"
 #import "AskQuestionTipView.h"
@@ -111,7 +110,7 @@
     [self.navigationController.navigationBar setShadowImage:[UIImage new]];
     self.view.lee_theme.LeeConfigBackgroundColor(@"baseView_background_color");
     self.navigationController.navigationBar.lee_theme.LeeConfigTintColor(@"common_font_color_1");
-    NSString *url = [NSString stringWithFormat:@"%@/#/answer", REQUEST_CONTRACT_BASEURL];
+    NSString *url = [NSString stringWithFormat:@"https://static.pocketeos.top:3443/#/answer"];
     [self.webView loadRequest: [NSURLRequest requestWithURL:String_To_URL(url)]];
     
     self.webView.UIDelegate = self;
@@ -135,8 +134,8 @@
 }
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler{
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"提示" message:message?:@"" preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addAction:([UIAlertAction actionWithTitle:@"确认" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"提示", nil)message:message?:@"" preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addAction:([UIAlertAction actionWithTitle:NSLocalizedString(@"确认", nil)style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         completionHandler();
     }])];
     [self presentViewController:alertController animated:YES completion:nil];
@@ -155,7 +154,7 @@
         self.WKScriptMessageBody = (NSString *)message.body;
         [self.view addSubview:self.askQuestionTipView];
         
-        NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:@"回答此问题将抵押您 %@ OCT ", @"1"]];
+        NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:NSLocalizedString(@"回答此问题将抵押您 %@ OCT ", nil), @"1"]];
         [attrString addAttribute:NSForegroundColorAttributeName
                            value:HEXCOLOR(0x2A2A2A)
                            range:NSMakeRange(0, 9)];
@@ -196,49 +195,17 @@
 -(void)confirmBtnDidClick:(UIButton *)sender{
     // 验证密码输入是否正确
     Wallet *current_wallet = CURRENT_WALLET;
-    if (![NSString validateWalletPasswordWithSha256:current_wallet.wallet_shapwd password:self.loginPasswordView.inputPasswordTF.text]) {
-        [TOASTVIEW showWithText:@"密码输入错误!"];
+    if (![WalletUtil validateWalletPasswordWithSha256:current_wallet.wallet_shapwd password:self.loginPasswordView.inputPasswordTF.text]) {
+        [TOASTVIEW showWithText:NSLocalizedString(@"密码输入错误!", nil)];
         return;
     }
-    
-    
-    // 1.押币 2.回答
-    [self approve];
-    
+    [self answerQuestion];
 }
-
-// 押币
-- (void)approve{
-    [SVProgressHUD show];
-    self.approveAbi_json_to_bin_request.action = @"approve";
-    self.approveAbi_json_to_bin_request.code = @"octoneos";
-    self.approveAbi_json_to_bin_request.owner = self.choosedAccountName;
-    self.approveAbi_json_to_bin_request.spender = @"ocaskans";
-    self.approveAbi_json_to_bin_request.quantity = [NSString stringWithFormat:@"1.0000 OCT"];
-    WS(weakSelf);
-    [self.approveAbi_json_to_bin_request postOuterDataSuccess:^(id DAO, id data) {
-         #pragma mark -- [@"data"]
-        NSLog(@"approve_abi_to_json_request_success: --binargs: %@",data[@"data"][@"binargs"] );
-        AccountInfo *accountInfo = [[AccountsTableManager accountTable] selectAccountTableWithAccountName:self.choosedAccountName];
-        weakSelf.transferService.available_keys = @[accountInfo.account_owner_public_key , accountInfo.account_active_public_key];
-        weakSelf.transferService.action = @"approve";
-        weakSelf.transferService.sender = weakSelf.choosedAccountName;
-        weakSelf.transferService.code = @"octoneos";
-         #pragma mark -- [@"data"]
-        weakSelf.transferService.binargs = data[@"data"][@"binargs"];
-        weakSelf.transferService.pushTransactionType = PushTransactionTypeApprove;
-        weakSelf.transferService.password = weakSelf.loginPasswordView.inputPasswordTF.text;
-        [weakSelf.transferService pushTransaction];
-    } failure:^(id DAO, NSError *error) {
-        NSLog(@"%@", error);
-    }];
-}
-
 
 - (void)answerQuestion{
     WS(weakSelf);
-    self.answerQuestion_abi_json_to_bin_request.code = @"ocaskans";
-    self.answerQuestion_abi_json_to_bin_request.action = @"answer";
+    self.answerQuestion_abi_json_to_bin_request.code = ContractName_OCASKANS;
+    self.answerQuestion_abi_json_to_bin_request.action = ContractAction_ANSWER;
     self.answerQuestion_abi_json_to_bin_request.from = self.choosedAccountName;
     self.answerQuestion_abi_json_to_bin_request.askid = self.question.question_id.stringValue;
     self.answerQuestion_abi_json_to_bin_request.choosedanswer = @(self.WKScriptMessageBody.integerValue);
@@ -246,10 +213,10 @@
          #pragma mark -- [@"data"]
         NSLog(@"answer_Question_abi_to_json_request_success: --binargs: %@",data[@"data"][@"binargs"] );
         AccountInfo *accountInfo = [[AccountsTableManager accountTable] selectAccountTableWithAccountName:self.choosedAccountName];
-        weakSelf.transferService.available_keys = @[accountInfo.account_owner_public_key , accountInfo.account_active_public_key];
-        weakSelf.transferService.action = @"answer";
+        weakSelf.transferService.available_keys = @[VALIDATE_STRING(accountInfo.account_owner_public_key) , VALIDATE_STRING(accountInfo.account_active_public_key)];
+        weakSelf.transferService.action = ContractAction_ANSWER;
         weakSelf.transferService.sender = weakSelf.choosedAccountName;
-        weakSelf.transferService.code = @"ocaskans";
+        weakSelf.transferService.code = ContractName_OCASKANS;
          #pragma mark -- [@"data"]
         weakSelf.transferService.binargs = data[@"data"][@"binargs"];
         weakSelf.transferService.pushTransactionType = PushTransactionTypeAnswer;
@@ -265,20 +232,11 @@
 //transferserviceDelegate
 -(void)answerQuestionDidFinish:(TransactionResult *)result{
     if ([result.code isEqualToNumber:@0 ]) {
-        [TOASTVIEW showWithText:@"回答问题成功!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"回答问题成功!", nil)];
         [self.navigationController popViewControllerAnimated:YES];
     }else{
         [TOASTVIEW showWithText: result.message];
     }
-}
-
-
--(void)approveDidFinish:(TransactionResult *)result{
-        if ([result.code isEqualToNumber:@0 ]) {
-    [self answerQuestion];
-        }else{
-            [TOASTVIEW showWithText: result.message];
-        }
 }
 
 @end

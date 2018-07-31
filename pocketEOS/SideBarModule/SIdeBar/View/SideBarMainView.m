@@ -9,26 +9,30 @@
 #import "SideBarMainView.h"
 
 @interface SideBarMainView()
-@property (weak, nonatomic) IBOutlet UIImageView *candyEnergyImageView;
-@property (weak, nonatomic) IBOutlet UIImageView *candyImageView;
-@property (weak, nonatomic) IBOutlet UIImageView *bp_voteImageView;
+@property (weak, nonatomic) IBOutlet NSLayoutConstraint *scrollHeight;
+// top
+@property (weak, nonatomic) IBOutlet UIButton *QRCodeButton;
+@property (weak, nonatomic) IBOutlet UIButton *avatarBtn;
+@property (weak, nonatomic) IBOutlet UIButton *logoutBtn;
 
+// mid
+@property (weak, nonatomic) IBOutlet UIView *candyBaseView;
+
+
+@property (weak, nonatomic) IBOutlet UIView *voteBaseView;
+@property (weak, nonatomic) IBOutlet UIImageView *voteImageView;
+
+// bottom
 @property (weak, nonatomic) IBOutlet UIImageView *messageCenterImageView;
+@property (weak, nonatomic) IBOutlet UIImageView *transactionImageView;
 @property (weak, nonatomic) IBOutlet UIImageView *systemSettingImageView;
 @property (weak, nonatomic) IBOutlet UIImageView *versionUpdateImageView;
-@property (weak, nonatomic) IBOutlet UIImageView *walletManageImgView;
-@property (weak, nonatomic) IBOutlet UIImageView *transactionImageView;
 
 
-
-@property (weak, nonatomic) IBOutlet UIButton *avatarBtn;
-@property (weak, nonatomic) IBOutlet BaseLabel *walletManageLabel;
-@property (weak, nonatomic) IBOutlet UIView *candyBaseView;
-@property (weak, nonatomic) IBOutlet UIView *bp_voteBaseView;
 @property (weak, nonatomic) IBOutlet UIView *messageCenterBaseView;
+@property (weak, nonatomic) IBOutlet UIView *transactionRecordBaseView;
 @property (weak, nonatomic) IBOutlet UIView *systemSettingBaseView;
 @property (weak, nonatomic) IBOutlet UIView *versionUpdateBaseView;
-@property (weak, nonatomic) IBOutlet UIButton *logoutBtn;
 
 @end
 
@@ -37,27 +41,29 @@
 @implementation SideBarMainView
 
 
--(void)awakeFromNib{
+- (void)awakeFromNib{
     [super awakeFromNib];
-    self.candyImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"candyIcon"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"candyIcon_BB"]);
-   
-    self.bp_voteImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"thumb_black"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"thumb_BB"]);
+    if ([DeviceType getIsIpad]) {
+        self.scrollHeight.constant = 100;
+    }
     
+    
+    self.voteImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"bpvote"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"bpvote_BB"]);
     self.messageCenterImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"messageCenter"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"messageCenter_BB"]);
-     self.systemSettingImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"systemSetting"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"systemSetting_BB"]);
+    
+        self.transactionImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"transactionrecord_icon"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"transaction_history_BB"]);
+    self.systemSettingImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"systemSetting"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"systemSetting_BB"]);
     
     self.versionUpdateImageView.lee_theme.LeeAddImage(SOCIAL_MODE, [UIImage imageNamed:@"versionUpdate"]).LeeAddImage(BLACKBOX_MODE, [UIImage imageNamed:@"versionUpdate_BB"]);
     
     
     if (LEETHEME_CURRENTTHEME_IS_SOCAIL_MODE) {
-        self.candyBaseView.hidden = NO;
+        self.QRCodeButton.hidden = NO;
     }else if(LEETHEME_CURRENTTHEME_IS_BLACKBOX_MODE){
-        self.candyBaseView.hidden = YES;
         self.avatarImg.hidden = YES;
-        self.messageCenterBaseView.sd_layout.topSpaceToView(self.walletManageLabel, 59).heightIs(40);
-        self.systemSettingBaseView.sd_layout.topSpaceToView(self.walletManageLabel, 59+(20+30)*2).heightIs(40);
-        self.versionUpdateBaseView.sd_layout.topSpaceToView(self.walletManageLabel, 59+(20+30)*3).heightIs(40);
-        
+        self.QRCodeButton.hidden = YES;
+        self.voteBaseView.sd_layout.leftEqualToView(self.candyBaseView).topEqualToView(self.candyBaseView).rightEqualToView(self.candyBaseView).bottomEqualToView(self.candyBaseView);
+
     }
     
     self.logoutBtn.lee_theme
@@ -66,13 +72,11 @@
     .LeeAddButtonTitleColor(BLACKBOX_MODE, HEXCOLOR(0xFFFFFF), UIControlStateNormal);
     
     
-    self.walletManageImgView.lee_theme
-    .LeeConfigImage(@"pocketManageImage");
-    
-    self.transactionImageView.lee_theme
-    .LeeConfigImage(@"transaction_historyImage");
-
-
+//    self.walletManageImgView.lee_theme
+//    .LeeConfigImage(@"pocketManageImage");
+//
+//    self.transactionImageView.lee_theme
+//    .LeeConfigImage(@"transaction_historyImage");
 }
 
 - (IBAction)QRCodeBtn:(UIButton *)sender {
@@ -87,23 +91,6 @@
     }
 }
 
-- (IBAction)managePocketBtn:(id)sender {
-    if (self.delegate && [self.delegate respondsToSelector:@selector(managePocketBtnDidClick:)]) {
-        [self.delegate managePocketBtnDidClick:sender];
-    }
-}
-
-- (IBAction)transactionRecordBtn:(UIButton *)sender {
-    if (self.delegate && [self.delegate respondsToSelector:@selector(transactionRecordBtnDidClick:)]) {
-        [self.delegate transactionRecordBtnDidClick:sender];
-    }
-}
-
-- (IBAction)messagesCenterBtn:(UIButton *)sender {
-    if (self.delegate && [self.delegate respondsToSelector:@selector(messagesCenterBtnDidClick:)]) {
-        [self.delegate messagesCenterBtnDidClick:sender];
-    }
-}
 - (IBAction)candyBtn:(UIButton *)sender {
     if (self.delegate && [self.delegate respondsToSelector:@selector(candyBtnDidClick:)]) {
         [self.delegate candyBtnDidClick:sender];
@@ -113,6 +100,18 @@
 - (IBAction)bp_voteBtn:(UIButton *)sender {
     if (self.delegate && [self.delegate respondsToSelector:@selector(bp_voteBtnDidClick:)]) {
         [self.delegate bp_voteBtnDidClick:sender];
+    }
+}
+
+- (IBAction)messagesCenterBtn:(UIButton *)sender {
+    if (self.delegate && [self.delegate respondsToSelector:@selector(messagesCenterBtnDidClick:)]) {
+        [self.delegate messagesCenterBtnDidClick:sender];
+    }
+}
+
+- (IBAction)transactionRecordBtn:(UIButton *)sender {
+    if (self.delegate && [self.delegate respondsToSelector:@selector(transactionRecordBtnDidClick:)]) {
+        [self.delegate transactionRecordBtnDidClick:sender];
     }
 }
 

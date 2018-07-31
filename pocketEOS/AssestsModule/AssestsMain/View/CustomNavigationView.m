@@ -14,6 +14,7 @@
 - (UIView *)originNavView{
     if (!_originNavView) {
         _originNavView = [[UIView alloc] init];
+        _originNavView.backgroundColor = [UIColor clearColor];
     }
     return _originNavView;
 }
@@ -22,7 +23,8 @@
     if (!_leftBtn) {
         _leftBtn = [[UIButton alloc] init];
         [_leftBtn addTarget:self action:@selector(leftBtnDidClick:) forControlEvents:(UIControlEventTouchUpInside)];
-        [_leftBtn setImage:[UIImage imageNamed:@"setting"] forState:(UIControlStateNormal)];
+        [_leftBtn setImage:[UIImage imageNamed:@"wallet_default_avatar"] forState:(UIControlStateNormal)];
+        _leftBtn.sd_cornerRadius = @(30/2);
     }
     return _leftBtn;
 }
@@ -30,18 +32,19 @@
     if (!_rightBtn1) {
         _rightBtn1 = [[UIButton alloc] init];
         [_rightBtn1 addTarget:self action:@selector(rightBtn1DidClick:) forControlEvents:(UIControlEventTouchUpInside)];
-        [_rightBtn1 setImage:[UIImage imageNamed:@"scan"] forState:(UIControlStateNormal)];
+        [_rightBtn1 setImage:[UIImage imageNamed:@"pocketManagement_icon"] forState:(UIControlStateNormal)];
     }
     return _rightBtn1;
 }
-//- (UIButton *)rightBtn2{
-//    if (!_rightBtn2) {
-//        _rightBtn2 = [[UIButton alloc] init];
-//        [_rightBtn2 addTarget:self action:@selector(rightBtn2DidClick:) forControlEvents:(UIControlEventTouchUpInside)];
-//        [_rightBtn2 setImage:[UIImage imageNamed:@"notify"] forState:(UIControlStateNormal)];
-//    }
-//    return _rightBtn2;
-//}
+- (UIButton *)rightBtn2{
+    if (!_rightBtn2) {
+        _rightBtn2 = [[UIButton alloc] init];
+        [_rightBtn2 addTarget:self action:@selector(rightBtn2DidClick:) forControlEvents:(UIControlEventTouchUpInside)];
+        [_rightBtn2 setImage:[UIImage imageNamed:@"scan"] forState:(UIControlStateNormal)];
+        
+    }
+    return _rightBtn2;
+}
 
 - (UIImageView *)titleImg{
     if (!_titleImg) {
@@ -55,6 +58,7 @@
 - (UIView *)changedNavView{
     if (!_changedNavView) {
         _changedNavView = [[UIView alloc] init];
+        _changedNavView.backgroundColor = [UIColor clearColor];
     }
     return _changedNavView;
 }
@@ -91,19 +95,19 @@
     self = [super initWithFrame:frame];
     if (self) {
         self.backgroundColor = [UIColor clearColor];
-        
+
         // 默认的导航栏
         [self addSubview:self.originNavView];
         self.originNavView.sd_layout.spaceToSuperView(UIEdgeInsetsMake(0, 0, 0, 0));
         
         [_originNavView addSubview:self.leftBtn];
-        self.leftBtn.sd_layout.leftSpaceToView(_originNavView, 6).bottomSpaceToView(_originNavView, 0).widthIs(BUTTON_HEIGHT).heightIs(BUTTON_HEIGHT);
+        self.leftBtn.sd_layout.leftSpaceToView(_originNavView, 16).bottomSpaceToView(_originNavView, 5).widthIs(30).heightIs(30);
         
         [_originNavView addSubview:self.rightBtn1];
         self.rightBtn1.sd_layout.rightSpaceToView(_originNavView, 6).bottomSpaceToView(_originNavView, 0).widthIs(BUTTON_HEIGHT).heightIs(BUTTON_HEIGHT);
         
-//        [_originNavView addSubview:self.rightBtn2];
-//        self.rightBtn2.sd_layout.rightSpaceToView(self.rightBtn1, BUTTON_HEIGHT).bottomSpaceToView(_originNavView, 10).widthIs(BUTTON_HEIGHT).heightIs(BUTTON_HEIGHT);
+        [_originNavView addSubview:self.rightBtn2];
+        self.rightBtn2.sd_layout.rightSpaceToView(self.rightBtn1, MARGIN_10).bottomSpaceToView(_originNavView, 0).widthIs(BUTTON_HEIGHT).heightIs(BUTTON_HEIGHT);
         
         [_originNavView addSubview:self.titleImg];
         self.titleImg.sd_layout.centerXEqualToView(self).bottomSpaceToView(_originNavView, 12).widthIs(95).heightIs(15);
@@ -141,12 +145,12 @@
     self.rightBtn1DidClickBlock();
 }
 
-//- (void)rightBtn2DidClick:(UIButton *)sender{
-//    if (!self.rightBtn2DidClickBlock) {
-//        return;
-//    }
-//    self.rightBtn2DidClickBlock();
-//}
+- (void)rightBtn2DidClick:(UIButton *)sender{
+    if (!self.rightBtn2DidClickBlock) {
+        return;
+    }
+    self.rightBtn2DidClickBlock();
+}
 
 - (void)changedBtn1DidClick:(UIButton *)sender{
     if (!self.changedBtn1DidClickBlock) {
