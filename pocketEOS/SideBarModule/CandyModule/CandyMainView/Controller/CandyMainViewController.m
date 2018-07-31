@@ -33,9 +33,10 @@
     return _backgroundView;
 }
 
+
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back_white" title:@"糖果积分" rightBtnImgName:@"" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back_white" title:NSLocalizedString(@"糖果积分", nil)rightBtnImgName:@"" delegate:self];
         _navView.backgroundColor = [UIColor clearColor];
         _navView.titleLabel.textColor = [UIColor whiteColor];
     }
@@ -73,9 +74,9 @@
     [self.mainTableView setTableHeaderView:self.headerView];
     self.mainTableView.backgroundColor = [UIColor clearColor];
     self.mainTableView.separatorStyle = UITableViewCellSeparatorStyleNone;
-    self.mainTableView.scrollEnabled = NO;
     self.mainTableView.mj_header.hidden = YES;
     self.mainTableView.mj_footer.hidden = YES;
+    self.view.backgroundColor = [UIColor whiteColor];
     [self buildDataSource];
 }
 
@@ -86,7 +87,7 @@
     [self.mainTableView.mj_footer resetNoMoreData];
     self.candyScoreRequest.uid = CURRENT_WALLET_UID;
     [self.candyScoreRequest getDataSusscess:^(id DAO, id data) {
-        [weakSelf.headerView.avatarImgView sd_setImageWithURL:String_To_URL(wallet.wallet_avatar) placeholderImage:[UIImage imageNamed:@"wallet_default_avatar"]];
+        [weakSelf.headerView.avatarImgView sd_setImageWithURL:String_To_URL(wallet.wallet_img) placeholderImage:[UIImage imageNamed:@"wallet_default_avatar"]];
         weakSelf.headerView.myPointsLabel.text = [NSString stringWithFormat:@"+%@", VALIDATE_NUMBER(data[@"data"][@"scoreNum"])];
     } failure:^(id DAO, NSError *error) {
         

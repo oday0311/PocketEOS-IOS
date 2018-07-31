@@ -15,20 +15,23 @@
 #import "BindPhoneNumberHeaderView.h"
 #import "NavigationView.h"
 #import "RtfBrowserViewController.h"
+#import "CountryCodeAreaViewController.h"
+#import "AreaCodeModel.h"
 
 
-@interface BindPhoneNumberViewController ()<UIGestureRecognizerDelegate, BindPhoneNumberHeaderViewDelegate, NavigationViewDelegate>
+@interface BindPhoneNumberViewController ()<UIGestureRecognizerDelegate, BindPhoneNumberHeaderViewDelegate, NavigationViewDelegate, CountryCodeAreaViewControllerDelegate>
 @property(nonatomic, strong) NavigationView *navView;
 @property(nonatomic, strong) BindPhoneNumberHeaderView *headerView;
 @property(nonatomic , strong) GetVerifyCodeRequest *getVerifyCodeRequest;
 @property(nonatomic , strong) BindPhoneRequest *bindPhoneRequest;
+@property(nonatomic , strong) AreaCodeModel *areaCodeModel;
 @end
 
 @implementation BindPhoneNumberViewController
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:@"绑定手机号" rightBtnTitleName:@"" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:NSLocalizedString(@"绑定手机号", nil)rightBtnTitleName:@"" delegate:self];
         _navView.leftBtn.lee_theme.LeeAddButtonImage(SOCIAL_MODE, [UIImage imageNamed:@"back"], UIControlStateNormal).LeeAddButtonImage(BLACKBOX_MODE, [UIImage imageNamed:@"back_white"], UIControlStateNormal);
     }
     return _navView;
@@ -65,12 +68,17 @@
 
 //BindPhoneNumberHeaderViewDelegate
 -(void)getVerifyCodeBtnDidClick:(UIButton *)sender{
-    if (![RegularExpression validateMobile:self.headerView.phoneNumberTF.text] ) {
-        [TOASTVIEW showWithText: @"手机号格式有误!" ];
+    if (IsStrEmpty(self.headerView.phoneNumberTF.text)) {
+        [TOASTVIEW showWithText: NSLocalizedString(@"手机号不能为空!", nil)];
         return;
     }
     [self startCountDown];
     self.getVerifyCodeRequest.phoneNum = self.headerView.phoneNumberTF.text;
+    if (!IsNilOrNull(self.areaCodeModel)) {
+        self.getVerifyCodeRequest.type = self.areaCodeModel.code;
+    }else{
+        self.getVerifyCodeRequest.type = @"86";
+    }
     [self.getVerifyCodeRequest postDataSuccess:^(id DAO, id data) {
         [TOASTVIEW showWithText: VALIDATE_STRING(data[@"message"]) ];
         if ([data[@"code"] isEqualToValue:@0]) {
@@ -84,24 +92,32 @@
 }
 -(void)bindBtnDidClick:(UIButton *)sender{
     if (self.headerView.agreeTermBtn.isSelected) {
-        [TOASTVIEW showWithText:@"请勾选同意条款!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"请勾选同意条款!", nil)];
         return;
     }
-    if (![RegularExpression validateMobile:self.headerView.phoneNumberTF.text] ) {
-        [TOASTVIEW showWithText: @"手机号格式有误!" ];
+    if (IsStrEmpty(self.headerView.phoneNumberTF.text)) {
+        [TOASTVIEW showWithText: NSLocalizedString(@"手机号不能为空!", nil)];
         return;
     }
     if (![RegularExpression validateVerifyCode:self.headerView.verifyCodeTF.text] ) {
-        [TOASTVIEW showWithText: @"验证码格式有误!" ];
+        [TOASTVIEW showWithText: NSLocalizedString(@"验证码格式有误!", nil)];
         return;
     }
     
     self.bindPhoneRequest.name = self.model.name;
     self.bindPhoneRequest.avatar = self.model.avatar;
-    self.bindPhoneRequest.openid = self.model.openid;
     self.bindPhoneRequest.phoneNum = self.headerView.phoneNumberTF.text;
-    self.bindPhoneRequest.type = self.model.type;
+    if (self.model.socialModelType == SocialTypeQQ) {
+        self.bindPhoneRequest.type = @"1";
+        self.bindPhoneRequest.openid = self.model.openid;
+    }else if (self.model.socialModelType == SocialTypeWechat){
+        self.bindPhoneRequest.type = @"2";
+        self.bindPhoneRequest.openid = self.model.unionid;
+
+    }
+    
     self.bindPhoneRequest.code = self.headerView.verifyCodeTF.text;
+    
     WS(weakSelf);
     [self.bindPhoneRequest postDataSuccess:^(id DAO, id data) {
         [TOASTVIEW showWithText: VALIDATE_STRING(data[@"message"]) ];
@@ -112,17 +128,28 @@
             [[NSUserDefaults standardUserDefaults] synchronize];
             Wallet *wallet = CURRENT_WALLET;
             if (wallet) {
-                NSLog(@"%@", wallet.account_info_table_name);
+                
+                NSString *columnName ;
+                NSString *newValue;
+                if (weakSelf.model.socialModelType == SocialTypeQQ) {
+                    columnName = @"wallet_qq";
+                    newValue  = weakSelf.model.openid;
+                }else if (weakSelf.model.socialModelType == SocialTypeWechat){
+                    columnName = @"wallet_weixin";
+                    newValue  = weakSelf.model.unionid;
+                }
+                [[WalletTableManager walletTable] executeUpdate:[NSString stringWithFormat:@"UPDATE %@ SET '%@' = '%@' WHERE wallet_uid = '%@'", WALLET_TABLE , columnName, newValue , CURRENT_WALLET_UID]];
+                [((AppDelegate *)[[UIApplication sharedApplication] delegate]).window setRootViewController: [[BaseTabBarController alloc] init]];
             }else{
-                NSLog(@"没有 wallet");
+                NSLog(NSLocalizedString(@"没有 wallet", nil));
                 // 如果本地没有当前账号对应的钱包
                 Wallet *wallet = [[Wallet alloc] init];
                 wallet.wallet_name = weakSelf.model.name;
                 wallet.wallet_img = weakSelf.model.avatar;
                 
-                if ([weakSelf.model.type isEqualToString:@"1"]) {
+                if (weakSelf.model.socialModelType == SocialTypeQQ) {
                     wallet.wallet_qq = weakSelf.model.openid;
-                }else if ([weakSelf.model.type isEqualToString:@"2"]){
+                }else if (weakSelf.model.socialModelType == SocialTypeWechat){
                     wallet.wallet_weixin = weakSelf.model.openid;
                 }
                 
@@ -147,6 +174,19 @@
     [self.navigationController pushViewController:vc animated:YES];
 }
 
+- (void)areaCodeBtnDidClick{
+    CountryCodeAreaViewController *vc = [[CountryCodeAreaViewController alloc] init];
+    vc.delegate = self;
+    [self.navigationController pushViewController:vc animated:YES];
+}
+
+//CountryCodeAreaViewControllerDelegate
+-(void)countryCodeAreaCellDidSelect:(AreaCodeModel *)model{
+    self.areaCodeModel = model;
+    self.headerView.areaCodeLabel.text = [NSString stringWithFormat:@"+%@", self.areaCodeModel.code];
+}
+
+
 // NavigationViewDelegate
 -(void)leftBtnDidClick{
     [self.navigationController popViewControllerAnimated:YES];
@@ -164,7 +204,7 @@
             dispatch_source_cancel(_timer);
             dispatch_async(dispatch_get_main_queue(), ^{
                 //设置界面的按钮显示 根据自己需求设置
-                [self.headerView.getVerifyCodeBtn setTitle:@"获取验证码" forState:UIControlStateNormal];
+                [self.headerView.getVerifyCodeBtn setTitle:NSLocalizedString(@"获取验证码", nil)forState:UIControlStateNormal];
                 self.headerView.getVerifyCodeBtn.userInteractionEnabled = YES;
             });
         }else{
@@ -177,7 +217,7 @@
             NSString *strTime = [NSString stringWithFormat:@"%.2d", seconds];
             dispatch_async(dispatch_get_main_queue(), ^{
                 //设置界面的按钮显示 根据自己需求设置
-                [self.headerView.getVerifyCodeBtn setTitle:[NSString stringWithFormat:@"%@秒后重新发送",strTime] forState:UIControlStateNormal];
+                [self.headerView.getVerifyCodeBtn setTitle:[NSString stringWithFormat:NSLocalizedString(@"%@秒后重新发送", nil),strTime] forState:UIControlStateNormal];
                 self.headerView.getVerifyCodeBtn.userInteractionEnabled = NO;
                 
             });

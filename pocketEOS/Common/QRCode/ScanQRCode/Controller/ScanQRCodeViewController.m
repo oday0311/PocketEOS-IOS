@@ -15,9 +15,10 @@
 #import "Follow.h"
 #import "AccountPrivateKeyQRCodeModel.h"
 #import "ImportAccountViewController.h"
-#import "TransferViewController.h"
+#import "TransferNewViewController.h"
 #import "TransferModel.h"
-
+#import "Get_token_info_service.h"
+#import "RecieveTokenModel.h"
 
 static const CGFloat kBorderW = 100;
 static const CGFloat kMargin = 30;
@@ -29,13 +30,15 @@ static const CGFloat kMargin = 30;
 @property (nonatomic, assign) BOOL isSelectedFlashlightBtn;
 @property (nonatomic, strong) UIView *bottomView;
 @property(nonatomic, strong) NavigationView *navView;
+@property(nonatomic, strong) Get_token_info_service *get_token_info_service;
+
 @end
 
 @implementation ScanQRCodeViewController
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView =  [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:@"扫一扫" rightBtnTitleName:@"相册" delegate:self];
+        _navView =  [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:NSLocalizedString(@"扫一扫", nil)rightBtnTitleName:NSLocalizedString(@"相册", nil)delegate:self];
         _navView.leftBtn
         .lee_theme.LeeAddButtonImage(SOCIAL_MODE, [UIImage imageNamed:@"back"], UIControlStateNormal)
         .LeeAddButtonImage(BLACKBOX_MODE, [UIImage imageNamed:@"back_white"], UIControlStateNormal);
@@ -52,6 +55,21 @@ static const CGFloat kMargin = 30;
     }
     return _scanningView;
 }
+
+- (Get_token_info_service *)get_token_info_service{
+    if (!_get_token_info_service) {
+        _get_token_info_service = [[Get_token_info_service alloc] init];
+    }
+    return _get_token_info_service;
+}
+
+- (NSMutableArray *)get_token_info_service_data_array{
+    if (!_get_token_info_service_data_array) {
+        _get_token_info_service_data_array = [[NSMutableArray alloc] init];
+    }
+    return _get_token_info_service_data_array;
+}
+
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [self.scanningView addTimer];
@@ -89,6 +107,7 @@ static const CGFloat kMargin = 30;
     /// 为了 UI 效果
     [self.view addSubview:self.bottomView];
     [self.view addSubview:self.navView];
+    
 }
 
 - (void)removeScanningView {
@@ -125,10 +144,17 @@ static const CGFloat kMargin = 30;
         ImportAccountViewController *vc = [[ImportAccountViewController alloc] init];
         vc.model = model;
         [self.navigationController pushViewController:vc animated:YES];
-    }else if ([scannedResult containsString:@"make_collections_QRCode"]){
+    }else if ([scannedResult containsString:@"make_collections_QRCode"] && ![scannedResult containsString:@"contract"]){
         TransferModel *model = [TransferModel mj_objectWithKeyValues: [scannedResult mj_JSONObject]];
-        TransferViewController *vc = [[TransferViewController alloc] init];
+        TransferNewViewController *vc = [[TransferNewViewController alloc] init];
         vc.transferModel = model;
+        vc.get_token_info_service_data_array = self.get_token_info_service_data_array;
+        [self.navigationController pushViewController:vc animated:YES];
+    }else if ([scannedResult containsString:@"token_make_collections_QRCode"] && [scannedResult containsString:@"contract"]){
+        RecieveTokenModel *model = [RecieveTokenModel mj_objectWithKeyValues: [scannedResult mj_JSONObject]];
+        TransferNewViewController *vc = [[TransferNewViewController alloc] init];
+        vc.recieveTokenModel = model;
+        vc.get_token_info_service_data_array = self.get_token_info_service_data_array;
         [self.navigationController pushViewController:vc animated:YES];
     }else{
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"scannedResult" message: VALIDATE_STRING(scannedResult) delegate:self cancelButtonTitle:@"cancle" otherButtonTitles: nil];
@@ -161,7 +187,7 @@ static const CGFloat kMargin = 30;
 
 #pragma mark - - - SGQRCodeAlbumManagerDelegate
 - (void)QRCodeAlbumManagerDidCancelWithImagePickerController:(SGQRCodeAlbumManager *)albumManager {
-    [self.view addSubview:self.scanningView];
+//    [self.view addSubview:self.scanningView];
 }
 
 - (void)QRCodeAlbumManager:(SGQRCodeAlbumManager *)albumManager didFinishPickingMediaWithResult:(NSString *)result {
@@ -169,7 +195,7 @@ static const CGFloat kMargin = 30;
 }
 /// 图片选择控制器读取图片二维码信息失败的回调函数
 - (void)QRCodeAlbumManagerDidReadQRCodeFailure:(SGQRCodeAlbumManager *)albumManager{
-    NSLog(@"图片选择控制器读取图片二维码信息失败的回调函数");
+    NSLog(NSLocalizedString(@"图片选择控制器读取图片二维码信息失败的回调函数", nil));
 }
 
 #pragma mark - - - SGQRCodeScanManagerDelegate
@@ -184,7 +210,7 @@ static const CGFloat kMargin = 30;
         NSString *scannedResult = [obj stringValue];
         [self scanQRCodeResultHandler:VALIDATE_STRING(scannedResult)];
     } else {
-        NSLog(@"暂未识别出扫描的二维码");
+        NSLog(NSLocalizedString(@"暂未识别出扫描的二维码", nil));
     }
 }
 - (void)QRCodeScanManager:(SGQRCodeScanManager *)scanManager brightnessValue:(CGFloat)brightnessValue {
@@ -209,7 +235,7 @@ static const CGFloat kMargin = 30;
         _promptLabel.textAlignment = NSTextAlignmentCenter;
         _promptLabel.font = [UIFont boldSystemFontOfSize:13.0];
         _promptLabel.textColor = [[UIColor whiteColor] colorWithAlphaComponent:0.6];
-        _promptLabel.text = @"将二维码/条码放入框内, 即可自动扫描";
+        _promptLabel.text = NSLocalizedString(@"将二维码/条码放入框内, 即可自动扫描", nil);
     }
     return _promptLabel;
 }

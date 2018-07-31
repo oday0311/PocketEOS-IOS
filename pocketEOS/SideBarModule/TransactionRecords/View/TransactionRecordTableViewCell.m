@@ -9,7 +9,7 @@
 #import "TransactionRecordTableViewCell.h"
 
 @interface TransactionRecordTableViewCell()
-@property(nonatomic, strong) UILabel *titleLabel;
+@property(nonatomic, strong) BaseLabel *titleLabel;
 @property(nonatomic, strong) UILabel *amountLabel;
 @property(nonatomic, strong) UILabel *belongBlockLabel;
 @property(nonatomic, strong) UILabel *resultLabel;
@@ -19,11 +19,10 @@
 
 @implementation TransactionRecordTableViewCell
 
-- (UILabel *)titleLabel{
+- (BaseLabel *)titleLabel{
     if (!_titleLabel) {
-        _titleLabel = [[UILabel alloc] init];
+        _titleLabel = [[BaseLabel alloc] init];
         _titleLabel.font = [UIFont systemFontOfSize:14];
-        _titleLabel.textColor = HEXCOLOR(0x2A2A2A);
         _titleLabel.textAlignment = NSTextAlignmentLeft;
     }
     return _titleLabel;
@@ -81,33 +80,33 @@
 }
 
 - (void)setModel:(TransactionRecord *)model{
-    if ([model.from isEqualToString:@"oc.redpacket"] || [model.to isEqualToString:@"oc.redpacket"]) {
+    if ([model.from isEqualToString:RedPacketReciever] || [model.to isEqualToString:RedPacketReciever]) {
         // redpacket
-        if ([model.from isEqualToString:@"oc.redpacket"]) {
-            self.titleLabel.text = [NSString stringWithFormat: @"红包入账"];
-        }else if ([model.to isEqualToString:@"oc.redpacket"]){
-            self.titleLabel.text = [NSString stringWithFormat:@"发出红包"];
+        if ([model.from isEqualToString:RedPacketReciever]) {
+            self.titleLabel.text = [NSString stringWithFormat: NSLocalizedString(@"红包入账", nil)];
+        }else if ([model.to isEqualToString:RedPacketReciever]){
+            self.titleLabel.text = [NSString stringWithFormat:NSLocalizedString(@"发出红包", nil)];
         }
     }else{
         // transfer
         if ([self.currentAccountName isEqualToString:model.from]) {
-            self.titleLabel.text = [NSString stringWithFormat:@"发送给%@" , model.to];
+            self.titleLabel.text = [NSString stringWithFormat:@"%@ %@",NSLocalizedString(@"发送给", nil), model.to];
         }else if ([self.currentAccountName isEqualToString:model.to]){
-            self.titleLabel.text = [NSString stringWithFormat:@"接受自%@" , model.from];
+            self.titleLabel.text = [NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"接受自", nil), model.from];
         }
     }
 
     if ([self.currentAccountName isEqualToString:model.from]) {
         self.amountLabel.text = [NSString stringWithFormat:@"-%@",  model.quantity];
-        self.amountLabel.textColor = HEXCOLOR(0x2A2A2A);
+        self.amountLabel.textColor = HEXCOLOR(0x999999);
     }else if([self.currentAccountName isEqualToString:model.to]){
         self.amountLabel.text = [NSString stringWithFormat:@"+%@",  model.quantity];
         self.amountLabel.textColor = HEXCOLOR(0xE903C);
     }
 
 
-    self.belongBlockLabel.text = [NSString stringWithFormat:@"所在区块:%@",model.ref_block_num];
-    self.resultLabel.text = [NSString stringWithFormat:@"成功"];
+    self.belongBlockLabel.text = [NSString stringWithFormat:@"%@%@", NSLocalizedString(@"所在区块", nil),model.ref_block_num];
+    self.resultLabel.text = [NSString stringWithFormat:NSLocalizedString(@"成功", nil)];
 }
 
 @end

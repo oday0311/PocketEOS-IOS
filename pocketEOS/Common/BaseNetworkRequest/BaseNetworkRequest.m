@@ -5,7 +5,7 @@
 //  Created by oraclechain on 2017/11/29.
 //  Copyright © 2017年 oraclechain. All rights reserved.
 //
-#define REQUEST_BASEURL @"https://api.pocketeos.top:443"
+#define REQUEST_BASEURL @"https://api.pocketeos.top"
 
 #define REQUEST_APIPATH [NSString stringWithFormat: @"%@", [self requestUrlPath]]
 
@@ -133,7 +133,7 @@
         }
         
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(task , error);
         
@@ -153,6 +153,7 @@
     NSLog(@"parameters = %@", parameters);
     self.sessionDataTask = [self.networkingManager GET:REQUEST_APIPATH parameters:parameters progress:^(NSProgress * _Nonnull downloadProgress) {
     } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        NSLog(@"responseObject:%@", responseObject);
         if ([self validateResponseData:responseObject HttpURLResponse:task.response]) {
             if (IsNilOrNull(success)) {
                 return ;
@@ -170,7 +171,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(weakSelf.networkingManager, error);
         
@@ -209,7 +210,7 @@
                 [[NSUserDefaults standardUserDefaults] setObject:recieveCookie forKey:@"Set-Cookie"];
             }
             
-            
+            NSLog(@"responseObject:%@", responseObject);
             success(weakSelf.networkingManager, responseObject);
         }
         else{
@@ -225,6 +226,7 @@
         if(IsNilOrNull(failure)){
             return;
         }
+        NSLog(@"%@", error);
         failure(task, error);
     }];
 }
@@ -257,7 +259,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(weakSelf.networkingManager , error);
     }];
@@ -271,6 +273,7 @@
     }
     
     id parameters = [self parameters];
+    NSLog(@"parameters = %@", parameters);
     NSLog(@"REQUEST_APIPATH = %@", REQUEST_APIPATH);
     WS(weakSelf);
     [self.networkingManager.requestSerializer setHTTPMethodsEncodingParametersInURI:[NSSet setWithObjects:@"GET", @"HEAD", nil]];
@@ -289,7 +292,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(weakSelf.networkingManager , error);
     }];
@@ -299,15 +302,29 @@
     if (![self buildRequestConfigInfo]) {
         return;
     }
-    [SVProgressHUD showWithStatus:@"正在上传"];
-    AFHTTPSessionManager *networkingManager = [[AFHTTPSessionManager alloc] init];
-    
-    [networkingManager.responseSerializer setAcceptableContentTypes:[NSSet setWithObjects:@"application/json", nil]];
+    [SVProgressHUD showWithStatus:NSLocalizedString(@"正在上传", nil)];
+    AFHTTPSessionManager *networkingManager = [[AFHTTPSessionManager alloc] initWithBaseURL: [NSURL URLWithString: REQUEST_BASEURL]];
+    // 单向验证
     
     networkingManager.requestSerializer = [AFJSONRequestSerializer serializer];
-    networkingManager.responseSerializer = [AFJSONResponseSerializer serializer];
+    // 如果已有Cookie, 则把你的cookie符上
+    NSString *cookie = [[NSUserDefaults standardUserDefaults] objectForKey:@"Set-Cookie"];
+    NSLog(@"sendCookie::%@", cookie);
+    if (cookie != nil) {
+        [networkingManager.requestSerializer setValue:cookie forHTTPHeaderField:@"Set-Cookie"];
+    }
     [networkingManager.requestSerializer setValue:@"Multipart/form-data" forHTTPHeaderField:@"Content-type"];
+    if (LEETHEME_CURRENTTHEME_IS_SOCAIL_MODE) {
+        [networkingManager.requestSerializer setValue:CURRENT_WALLET_UID forHTTPHeaderField:@"uid"];
+    }else if(LEETHEME_CURRENTTHEME_IS_BLACKBOX_MODE){
+        [networkingManager.requestSerializer setValue:@"6f1a8e0eb24afb7ddc829f96f9f74e9d" forHTTPHeaderField:@"uid"];
+    }
     
+    networkingManager.responseSerializer = [AFJSONResponseSerializer serializer];
+    [networkingManager.responseSerializer setAcceptableContentTypes:[NSSet setWithObjects:@"application/json", nil]];
+    
+    
+    [networkingManager setSecurityPolicy:[self customSecurityPolicy]];
     /**
      *  Start a Post request data interface
      */
@@ -334,7 +351,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(networkingManager, error);
     }];
@@ -349,7 +366,7 @@
     NSLog(@"REQUEST_APIPATH = %@", [self requestUrlPath]);
     NSLog(@"parameters = %@", parameters);
     
-    AFHTTPSessionManager *outerNetworkingManager = [[AFHTTPSessionManager alloc] init];
+    AFHTTPSessionManager *outerNetworkingManager = [[AFHTTPSessionManager alloc] initWithBaseURL: [NSURL URLWithString: REQUEST_BASEURL]];
     [outerNetworkingManager GET:[self requestUrlPath] parameters:[self parameters] progress:^(NSProgress * _Nonnull downloadProgress) {
     } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         if (IsNilOrNull(success)) {
@@ -363,7 +380,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(weakSelf.networkingManager , error);
     }];
@@ -384,8 +401,13 @@
     id parameters = [self parameters];
     NSLog(@"REQUEST_APIPATH = %@", [self requestUrlPath]);
     NSLog(@"parameters = %@", parameters);
-    AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc] init];
+    AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc] initWithBaseURL: [NSURL URLWithString: REQUEST_BASEURL]];
     [self configTimeOut:manager];
+#pragma mark -- 单向验证
+    [manager setSecurityPolicy:[self customSecurityPolicy]];
+//    //客服端利用p12验证服务器 , 双向验证
+//    //    [self checkCredential:manager];
+//    manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/html",@"text/json", @"text/javascript", @"text/plain", nil];
     // request Json 序列化
     manager.requestSerializer=[AFJSONRequestSerializer serializer];
     [manager POST:[self requestUrlPath] parameters:parameters progress:^(NSProgress * _Nonnull uploadProgress) {
@@ -401,7 +423,7 @@
             success(weakSelf.networkingManager, responseObject);
         }
         [SVProgressHUD dismiss];
-
+        NSLog(@"responseObject %@", responseObject);
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         [SVProgressHUD dismiss];
          NSLog(@"error ==%@", [error userInfo][@"com.alamofire.serialization.response.error.string"]);
@@ -409,7 +431,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
        
         failure(weakSelf.networkingManager , error);
@@ -438,7 +460,7 @@
             return ;
         }
         if(error.code == -1001){
-            [TOASTVIEW showWithText:@"请求超时, 请稍后再试!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"请求超时, 请稍后再试!", nil)];
         }
         failure(weakSelf.networkingManager , error);
     }];

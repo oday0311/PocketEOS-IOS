@@ -10,6 +10,7 @@
 #import "AssestsDetailHeaderView.h"
 #import "NavigationView.h"
 #import "TransferViewController.h"
+#import "TransferNewViewController.h"
 #import "RecieveViewController.h"
 #import "RedPacketViewController.h"
 #import "TendencyChartView.h"
@@ -22,12 +23,14 @@
 #import "SocialShareModel.h"
 #import "SocialManager.h"
 #import "AssestDetailFooterView.h"
+#import "TransferModel.h"
 
 @interface AssestsDetailViewController ()< UITableViewDelegate , UITableViewDataSource, NavigationViewDelegate, AssestsDetailHeaderViewDelegate, SocialSharePanelViewDelegate, AssestDetailFooterViewDelegate>
 @property(nonatomic, strong) NavigationView *navView;
 @property(nonatomic, strong) AssestsDetailHeaderView *headerView;
-@property(nonatomic, strong) NSString *currentAccountName;
-@property(nonatomic, strong) NSString *currentAssestsType;
+@property(nonatomic, copy) NSString *currentAccountName;
+@property(nonatomic, copy) NSString *currentAssestsType;
+@property(nonatomic , copy) NSString *currentContractName;
 @property(nonatomic, strong) TransactionRecordsService *transactionRecordsService;
 @property(nonatomic , strong) GetSparklinesRequest *getSparklinesRequest;
 @property(nonatomic , strong) UIView *shareBaseView;
@@ -35,13 +38,14 @@
 @property(nonatomic , strong) AssestsShareDetailView *assestsShareDetailView;
 @property(nonatomic , strong) NSArray *platformNameArr;
 @property(nonatomic , strong) AssestDetailFooterView *footerView;
+@property(nonatomic , strong) UIImageView *sparklinesImageView;
 @end
 
 @implementation AssestsDetailViewController
 
 - (NavigationView *)navView{
     if (!_navView) {
-        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:@"资产" rightBtnImgName:@"share" delegate:self];
+        _navView = [NavigationView navigationViewWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, NAVIGATIONBAR_HEIGHT) LeftBtnImgName:@"back" title:NSLocalizedString(@"资产", nil)rightBtnImgName:@"share" delegate:self];
         _navView.leftBtn.lee_theme.LeeAddButtonImage(SOCIAL_MODE, [UIImage imageNamed:@"back"], UIControlStateNormal).LeeAddButtonImage(BLACKBOX_MODE, [UIImage imageNamed:@"back_white"], UIControlStateNormal);
         if (LEETHEME_CURRENTTHEME_IS_SOCAIL_MODE) {
             _navView.rightBtn.hidden = NO;
@@ -55,7 +59,12 @@
 - (AssestsDetailHeaderView *)headerView{
     if (!_headerView) {
         _headerView = [[[NSBundle mainBundle] loadNibNamed:@"AssestsDetailHeaderView" owner:nil options:nil] firstObject];
-        _headerView.frame = CGRectMake(0, 0, SCREEN_WIDTH, 233);
+        if (kIs_iPhoneX) {
+            _headerView.frame = CGRectMake(0, 0, SCREEN_WIDTH, 233+50+25);
+        }else{
+            _headerView.frame = CGRectMake(0, 0, SCREEN_WIDTH, 233+50);
+        }
+        
         _headerView.delegate = self;
     }
     return _headerView;
@@ -84,7 +93,7 @@
         _socialSharePanelView.backgroundColor = HEXCOLOR(0xF7F7F7);
         _socialSharePanelView.delegate = self;
         NSMutableArray *modelArr = [NSMutableArray array];
-        NSArray *titleArr = @[@"微信好友",@"朋友圈", @"QQ好友", @"QQ空间"];
+        NSArray *titleArr = @[NSLocalizedString(@"微信好友", nil),NSLocalizedString(@"朋友圈", nil), NSLocalizedString(@"QQ好友", nil), NSLocalizedString(@"QQ空间", nil)];
         for (int i = 0; i < 4; i++) {
             SocialShareModel *model = [[SocialShareModel alloc] init];
             model.platformName = titleArr[i];
@@ -121,7 +130,7 @@
         [topView addGestureRecognizer:tap];
         
         UIButton *cancleBtn = [[UIButton alloc] init];
-        [cancleBtn setTitle:@"取消" forState:(UIControlStateNormal)];
+        [cancleBtn setTitle:NSLocalizedString(@"取消", nil)forState:(UIControlStateNormal)];
         [cancleBtn setBackgroundColor:HEXCOLOR(0xF7F7F7)];
         [cancleBtn setTitleColor:HEXCOLOR(0x2A2A2A) forState:(UIControlStateNormal)];
         [cancleBtn addTarget:self action:@selector(cancleShareAssestsDetail) forControlEvents:(UIControlEventTouchUpInside)];
@@ -151,18 +160,28 @@
     return _getSparklinesRequest;
 }
 
+- (UIImageView *)sparklinesImageView{
+    if (!_sparklinesImageView) {
+        _sparklinesImageView = [[UIImageView alloc] init];
+        _sparklinesImageView.frame = self.headerView.tendencyChartView.bounds;
+    }
+    return _sparklinesImageView;
+}
+
 - (void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
 
     self.currentAccountName = self.accountName;
-    self.currentAssestsType = self.model.assestsName;
-    self.transactionRecordsService.getTransactionRecordsRequest.account_name = self.accountName;
+    self.currentAssestsType = self.model.token_symbol;
+    self.transactionRecordsService.getTransactionRecordsRequest.from = self.accountName;
+    self.transactionRecordsService.getTransactionRecordsRequest.to = self.accountName;
+    self.currentContractName = self.model.contract_name;
+     self.transactionRecordsService.getTransactionRecordsRequest.symbols = [NSMutableArray arrayWithObjects:@{@"symbolName":VALIDATE_STRING(self.model.token_symbol)  , @"contractName": VALIDATE_STRING(self.model.contract_name) }, nil];
     [self loadNewData];
 }
 
 -(void)viewWillDisappear:(BOOL)animated{
     [super viewWillDisappear:animated];
-
 }
 
 - (void)viewDidLoad {
@@ -171,10 +190,10 @@
     [self.view addSubview:self.navView];
     [self.view addSubview:self.mainTableView];
     [self.mainTableView setTableHeaderView:self.headerView];
+    self.mainTableView.frame = CGRectMake(0, NAVIGATIONBAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - NAVIGATIONBAR_HEIGHT- TABBAR_HEIGHT);
     [self.view addSubview:self.footerView];
     [self configHeaderView];
    
-//     [self.mainTableView.mj_header beginRefreshing];
 //    NSValue *value0 = [NSValue valueWithCGPoint:(CGPointMake(0, 40))];
 //    NSValue *value1 = [NSValue valueWithCGPoint:(CGPointMake(10, 20))];
 //    NSValue *value2 = [NSValue valueWithCGPoint:(CGPointMake(15, 70))];
@@ -205,53 +224,50 @@
 }
 
 - (void)configHeaderView{
-    self.headerView.amountLabel.text = [NSString stringWithFormat:@"%@ CNY", [NumberFormatter displayStringFromNumber:@(self.model.assests_balance.doubleValue * self.model.assests_price_cny.doubleValue)]];
-    if ([self.model.assests_price_change_in_24 hasPrefix:@"-"]) {
+    self.headerView.amountLabel.text = [NSString stringWithFormat:@"%@ CNY", [NumberFormatter displayStringFromNumber:@( self.model.asset_price_cny.doubleValue)]];
+    if ([self.model.asset_price_change_in_24h hasPrefix:@"-"]) {
         //        HEXCOLOR(0x1E903C) HEXCOLOR(0xB0B0B0)
-        NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:@"%@%%   24h", self.model.assests_price_change_in_24]];
+        NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:@"%@%%   24h", self.model.asset_price_change_in_24h]];
         [attrString addAttribute:NSForegroundColorAttributeName
                            value:HEXCOLOR(0xB51515)
-                           range:NSMakeRange(0, self.model.assests_price_change_in_24.length + 1)];
+                           range:NSMakeRange(0, self.model.asset_price_change_in_24h.length + 1)];
         [attrString addAttribute:NSForegroundColorAttributeName
                            value:HEXCOLOR(0xB51515)
-                           range:NSMakeRange(self.model.assests_price_change_in_24.length+1, 6)];
+                           range:NSMakeRange(self.model.asset_price_change_in_24h.length+1, 6)];
         self.headerView.fluctuateLabel.attributedText = attrString;
     }else{
         //B51515
-        NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:@"+%@%%   24h", self.model.assests_price_change_in_24]];
+        NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc] initWithString: [NSString stringWithFormat:@"+%@%%   24h", self.model.asset_price_change_in_24h]];
         [attrString addAttribute:NSForegroundColorAttributeName
                            value:HEXCOLOR(0x1E903C)
-                           range:NSMakeRange(0, self.model.assests_price_change_in_24.length + 2)];
+                           range:NSMakeRange(0, self.model.asset_price_change_in_24h.length + 2)];
         [attrString addAttribute:NSForegroundColorAttributeName
                            value:HEXCOLOR(0x1E903C)
-                           range:NSMakeRange(self.model.assests_price_change_in_24.length + 2, 6)];
+                           range:NSMakeRange(self.model.asset_price_change_in_24h.length + 2, 6)];
         
         self.headerView.fluctuateLabel.attributedText = attrString;
     }
 
-    self.headerView.totalLabel.text = [NSString stringWithFormat:@"额(24h)%@CNY", self.model.assests_market_cap_cny];
+    self.headerView.totalLabel.text = [NSString stringWithFormat:@"%@(24h)%@CNY", NSLocalizedString(@"额", nil),self.model.asset_market_cap_cny];
     self.headerView.accountLabel.text = self.accountName;
-    if ([self.model.assestsName isEqualToString:@"eos"]) {
-        self.headerView.Assest_balance_Label.text = [NSString stringWithFormat:@"%@ EOS", [NumberFormatter displayStringFromNumber:@(self.model.assests_balance.doubleValue)]];
-        }else if ([self.model.assestsName isEqualToString:@"oct"]){
-        self.headerView.Assest_balance_Label.text = [NSString stringWithFormat:@"%@ OCT", [NumberFormatter displayStringFromNumber:@(self.model.assests_balance.doubleValue)]];
-    }
     
-    self.headerView.assest_value_label.text = [NSString stringWithFormat:@"≈%@ CNY", [NumberFormatter displayStringFromNumber:@(self.model.assests_balance.doubleValue * self.model.assests_price_cny.doubleValue)]];
+    self.headerView.Assest_balance_Label.text = [NSString stringWithFormat:@"%@ %@", [NumberFormatter displayStringFromNumber:@(self.model.balance.doubleValue)], self.model.token_symbol];
+    
+    self.headerView.assest_value_label.text = [NSString stringWithFormat:@"≈%@ CNY", [NumberFormatter displayStringFromNumber:@(self.model.balance.doubleValue * self.model.asset_price_cny.doubleValue)]];
     
     WS(weakSelf);
     [self.getSparklinesRequest getDataSusscess:^(id DAO, id data) {
         NSString *tendencyUrlStr ;
-        if ([weakSelf.model.assestsName isEqualToString:@"EOS"]) {
+        if ([weakSelf.model.token_symbol isEqualToString:@"EOS"]) {
             tendencyUrlStr = data[@"data"][@"sparkline_eos_png"];
-        }else if ([weakSelf.model.assestsName isEqualToString:@"OCT"]){
+        }else if ([weakSelf.model.token_symbol isEqualToString:@"OCT"]){
             tendencyUrlStr = data[@"data"][@"sparkline_oct_png"];
         }
-        UIImageView *imgView = [[UIImageView alloc] init];
-        UIImage *img = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:tendencyUrlStr]]];
-        imgView.image = img;
-        imgView.frame = weakSelf.headerView.tendencyChartView.bounds;
-        [weakSelf.headerView.tendencyChartView addSubview:imgView];
+        if (!IsNilOrNull(weakSelf.sparklinesImageView)) {
+            [weakSelf.sparklinesImageView removeFromSuperview];
+        }
+        [weakSelf.headerView.tendencyChartView addSubview:weakSelf.sparklinesImageView];
+        [weakSelf.sparklinesImageView sd_setImageWithURL:String_To_URL(tendencyUrlStr) placeholderImage:[UIImage imageNamed:@"sparklined_placeholder_image"] options:(SDWebImageCacheMemoryOnly)];
     } failure:^(id DAO, NSError *error) {
         NSLog(@"%@", error);
     }];
@@ -263,23 +279,14 @@
         cell = [[TransactionRecordTableViewCell alloc] initWithStyle:(UITableViewCellStyleDefault) reuseIdentifier:CELL_REUSEIDENTIFIER];
     }
     TransactionRecord *model = self.transactionRecordsService.dataSourceArray[indexPath.row];
-    if ([self.model.assestsName isEqualToString:@"eos"]) {
-       model = self.transactionRecordsService.eosTransactionDatasourceArray[indexPath.row];
-    }else if ([self.model.assestsName isEqualToString:@"oct"]){
-       model = self.transactionRecordsService.octTransactionDatasourceArray[indexPath.row];
-    }
+    model = self.transactionRecordsService.assestsTransactionDatasourceArray[indexPath.row];
     cell.currentAccountName = self.currentAccountName;
     cell.model = model;
     return cell;
 }
 
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
-    if ([self.model.assestsName isEqualToString:@"eos"]) {
-        return self.transactionRecordsService.eosTransactionDatasourceArray.count;
-    }else if ([self.model.assestsName isEqualToString:@"oct"]){
-        return self.transactionRecordsService.octTransactionDatasourceArray.count;
-    }
-    return 0;
+    return self.transactionRecordsService.assestsTransactionDatasourceArray.count;
 }
 
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
@@ -297,14 +304,14 @@
 - (void)rightBtnDidClick {
     [self.view addSubview:self.shareBaseView];
     self.shareBaseView.sd_layout.leftSpaceToView(self.view, 0).rightSpaceToView(self.view, 0).bottomSpaceToView(self.view, 0).heightIs(SCREEN_HEIGHT);
-    self.assestsShareDetailView.referencePriceLabel.text = [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:@(self.model.assests_price_cny.doubleValue)]];
+    self.assestsShareDetailView.referencePriceLabel.text = [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:@(self.model.asset_price_cny.doubleValue)]];
    
-    if ([self.model.assests_price_change_in_24 hasPrefix:@"-"]) {
-        self.assestsShareDetailView.priceChangeIn24hLabel.text = [NSString stringWithFormat:@"%@%%", self.model.assests_price_change_in_24];
+    if ([self.model.asset_price_change_in_24h hasPrefix:@"-"]) {
+        self.assestsShareDetailView.priceChangeIn24hLabel.text = [NSString stringWithFormat:@"%@%%", self.model.asset_price_change_in_24h];
     }else{
-        self.assestsShareDetailView.priceChangeIn24hLabel.text = [NSString stringWithFormat:@"+%@%%", self.model.assests_price_change_in_24];
+        self.assestsShareDetailView.priceChangeIn24hLabel.text = [NSString stringWithFormat:@"+%@%%", self.model.asset_price_change_in_24h];
     }
-    self.assestsShareDetailView.totalMarketCapitalizationLabel.text = [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:@(self.model.assests_market_cap_cny.doubleValue)]];
+    self.assestsShareDetailView.totalMarketCapitalizationLabel.text = [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:@(self.model.asset_market_cap_cny.doubleValue)]];
 }
 
 - (void)dismiss{
@@ -319,20 +326,22 @@
 - (void)SocialSharePanelViewDidTap:(UITapGestureRecognizer *)sender{
     NSString *platformName = self.platformNameArr[sender.view.tag-1000];
     ShareModel *model = [[ShareModel alloc] init];
-    if ([self.model.assestsName isEqualToString:@"eos"]) {
-        model.title = @"EOS最新咨询详情";
+    if ([self.model.token_symbol isEqualToString:@"EOS"]) {
         model.imageName = @"eos_avatar";
-    }else if ([self.model.assestsName isEqualToString:@"oct"]){
-        model.title = @"OCT最新咨询详情";
+    }else if ([self.model.token_symbol isEqualToString:@"OCT"]){
         model.imageName = @"oct_avatar";
-    }
-    NSString *priceChange ;
-    if ([self.model.assests_price_change_in_24 hasPrefix:@"-"]) {
-        priceChange = [NSString stringWithFormat:@"%@%%", self.model.assests_price_change_in_24];
     }else{
-        priceChange = [NSString stringWithFormat:@"+%@%%", self.model.assests_price_change_in_24];
+        model.imageName = @"account_default_blue";
     }
-    model.detailDescription = [NSString stringWithFormat:@"参考价格%@\n24小时涨跌幅%@\n总市值¥%@\n", [NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:@(self.model.assests_price_cny.doubleValue)]], priceChange,[NumberFormatter displayStringFromNumber:@(self.model.assests_market_cap_cny.doubleValue)]];
+    model.title = [NSString stringWithFormat:@"%@%@",self.model.token_symbol, NSLocalizedString(@"最新咨询详情", nil)];
+    
+    NSString *priceChange ;
+    if ([self.model.asset_price_change_in_24h hasPrefix:@"-"]) {
+        priceChange = [NSString stringWithFormat:@"%@%%", self.model.asset_price_change_in_24h];
+    }else{
+        priceChange = [NSString stringWithFormat:@"+%@%%", self.model.asset_price_change_in_24h];
+    }
+    model.detailDescription = [NSString stringWithFormat:@"%@%@\n%@%@\n%@¥%@\n", NSLocalizedString(@"参考价格", nil),[NSString stringWithFormat:@"¥%@", [NumberFormatter displayStringFromNumber:@(self.model.asset_price_cny.doubleValue)]], NSLocalizedString(@"24小时涨跌幅", nil), priceChange,NSLocalizedString(@"总市值", nil), [NumberFormatter displayStringFromNumber:@(self.model.asset_market_cap_cny.doubleValue)]];
     model.webPageUrl = @"https://pocketeos.com";
     NSLog(@"%@", platformName);
     if ([platformName isEqualToString:@"wechat_friends"]) {
@@ -346,36 +355,26 @@
     }
 }
 
-// AssestsDetailHeaderView Delegate
-- (void)transferBtnDidClick{
-    TransferViewController *vc = [[TransferViewController alloc] init];
-    vc.accountName = self.accountName;
-    [self.navigationController pushViewController:vc animated:YES];
-}
-
-- (void)recieveBtnDidClick{
-    RecieveViewController *vc = [[RecieveViewController alloc] init];
-    vc.accountName = self.accountName;
-    [self.navigationController pushViewController:vc animated:YES];
-}
-- (void)redPacketBtnDidClick{
-    RedPacketViewController *vc = [[RedPacketViewController alloc] init];
-    [self.navigationController pushViewController:vc animated:YES];
-}
-
-
 //AssestDetailFooterViewDelegate
 - (void)assestsDetailFooterViewDidClick:(UIButton *)sender{
     if (sender.tag == 1000) {
-        TransferViewController *vc = [[TransferViewController alloc] init];
-        vc.accountName = self.accountName;
+        TransferNewViewController *vc = [[TransferNewViewController alloc] init];
+        vc.currentAccountName = self.accountName;
+        vc.currentAssestsType = self.currentAssestsType;
+        vc.get_token_info_service_data_array = self.get_token_info_service_data_array;
         [self.navigationController pushViewController:vc animated:YES];
     }else if (sender.tag == 1001){
         RecieveViewController *vc = [[RecieveViewController alloc] init];
         vc.accountName = self.accountName;
+        TransferModel *model = [[TransferModel alloc] init];
+        model.account_name = self.accountName;
+        model.coin = self.currentAssestsType;
+        vc.transferModel = model;
+        vc.get_token_info_service_data_array = self.get_token_info_service_data_array;
         [self.navigationController pushViewController:vc animated:YES];
     }else if (sender.tag == 1002){
         RedPacketViewController *vc = [[RedPacketViewController alloc] init];
+        vc.accountName = self.accountName;
         [self.navigationController pushViewController:vc animated:YES];
     }
 }

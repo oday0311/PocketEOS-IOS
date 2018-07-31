@@ -5,7 +5,7 @@
 //  Created by oraclechain on 14/05/2018.
 //  Copyright © 2018 oraclechain. All rights reserved.
 //
-
+#define HEADERVIEW_HEIGHT 200
 #import "BBLoginViewController.h"
 #import "BBLoginHeaderView.h"
 #import "LoginMainViewController.h"
@@ -54,7 +54,7 @@
 - (BBLoginHeaderView *)loginHeaderView{
     if (!_loginHeaderView) {
         _loginHeaderView = [[[NSBundle mainBundle] loadNibNamed:@"BBLoginHeaderView" owner:nil options:nil] firstObject];
-        _loginHeaderView.frame = CGRectMake(0, 0, SCREEN_WIDTH, 200);
+        _loginHeaderView.frame = CGRectMake(0, 0, SCREEN_WIDTH, HEADERVIEW_HEIGHT);
         _loginHeaderView.delegate = self;
     }
     return _loginHeaderView;
@@ -63,7 +63,12 @@
 - (BBLoginCreateWalletView *)createWalletView{
     if (!_createWalletView) {
         _createWalletView = [[[NSBundle mainBundle] loadNibNamed:@"BBLoginCreateWalletView" owner:nil options:nil] firstObject];
-        _createWalletView.frame = CGRectMake(0, 200, SCREEN_WIDTH, 400);
+        if ([DeviceType getIsIpad]) {
+            _createWalletView.frame = CGRectMake(0, HEADERVIEW_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
+            
+        }else{
+            _createWalletView.frame = CGRectMake(0, HEADERVIEW_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT- HEADERVIEW_HEIGHT);
+        }
         _createWalletView.delegate = self;
     }
     return _createWalletView;
@@ -73,7 +78,7 @@
         NSArray *allLocalWallet = [[WalletTableManager walletTable] selectAllLocalWallet];
         CGFloat cellHeight = 50.5;
         _chooseWalletFooterView = [[[NSBundle mainBundle] loadNibNamed:@"BBLoginChooseWalletFooterView" owner:nil options:nil] firstObject];
-        _chooseWalletFooterView.frame = CGRectMake(0, 35+ allLocalWallet.count * cellHeight, SCREEN_WIDTH, SCREEN_HEIGHT-200-35-allLocalWallet.count * cellHeight);
+        _chooseWalletFooterView.frame = CGRectMake(0, 35+ allLocalWallet.count * cellHeight, SCREEN_WIDTH, SCREEN_HEIGHT-HEADERVIEW_HEIGHT-35-allLocalWallet.count * cellHeight);
         _chooseWalletFooterView.delegate = self;
     }
     return _chooseWalletFooterView;
@@ -83,12 +88,13 @@
     if (!_chooseWalletBackgroundView) {
         _chooseWalletBackgroundView = [[UIView alloc] init];
         NSArray *allLocalWallet = [[WalletTableManager walletTable] selectAllLocalWallet];
+        
         CGFloat cellHeight = 50.5;
         
-        _chooseWalletBackgroundView.frame = CGRectMake(0, 200, SCREEN_WIDTH, SCREEN_HEIGHT-200);
+        _chooseWalletBackgroundView.frame = CGRectMake(0, HEADERVIEW_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT-HEADERVIEW_HEIGHT);
         UILabel *label = [[UILabel alloc] init];
         label.textColor = HEXCOLOR(0x999999);
-        label.text = @"请选择钱包:";
+        label.text = NSLocalizedString(@"请选择钱包:", nil);
         label.font = [UIFont systemFontOfSize:14];
         label.frame = CGRectMake(MARGIN_20, MARGIN_15, 150, MARGIN_15);
         [_chooseWalletBackgroundView addSubview:label];
@@ -137,7 +143,9 @@
     self.view.backgroundColor = [UIColor whiteColor];
     [self.view addSubview:self.mainScrollView];
     [self.mainScrollView addSubview:self.loginHeaderView];
-    
+    if ([DeviceType getIsIpad]) {
+        self.mainScrollView.contentSize = CGSizeMake(SCREEN_WIDTH, SCREEN_HEIGHT+HEADERVIEW_HEIGHT);
+    }
     NSArray *localWalletsArr = [[WalletTableManager walletTable] selectAllLocalWallet];
     if (localWalletsArr.count > 0) {
         [self.mainScrollView addSubview:self.chooseWalletBackgroundView];
@@ -170,28 +178,28 @@
 // BBLoginCreateWalletViewDelegate
 -(void)nextStepBtnDidClick{
     if (self.createWalletView.agreeTermBtn.isSelected) {
-        [TOASTVIEW showWithText:@"请勾选同意条款!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"请勾选同意条款!", nil)];
         return;
     }
     
     
     if (IsStrEmpty(self.createWalletView.walletNameTF.text)) {
-        [TOASTVIEW showWithText:@"钱包名称不能为空!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"钱包名称不能为空!", nil)];
         return;
     }
     if (IsStrEmpty(self.createWalletView.passwordTF.text)) {
-        [TOASTVIEW showWithText:@"密码不能为空!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"密码不能为空!", nil)];
         return;
     }
     if (![self.createWalletView.confirmPasswordTF.text isEqualToString:self.createWalletView.passwordTF.text]) {
-        [TOASTVIEW showWithText:@"两次输入的密码不一致!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"两次输入的密码不一致!", nil)];
         return;
     }
     // 查重本地钱包名不可重复
     NSArray *localWalletsArr = [[WalletTableManager walletTable] selectAllLocalWallet];
     for (Wallet *model in localWalletsArr) {
         if ([model.wallet_name isEqualToString:self.createWalletView.walletNameTF.text]) {
-            [TOASTVIEW showWithText:@"本地钱包名不可重复!"];
+            [TOASTVIEW showWithText:NSLocalizedString(@"本地钱包名不可重复!", nil)];
             return;
         }
     }
@@ -199,16 +207,7 @@
     Wallet *model = [[Wallet alloc] init];
     model.wallet_name = self.createWalletView.walletNameTF.text;
     
-    
-    NSString *randomStr = [NSString randomStringWithLength:32];
-    NSString *encryptStr = [NSString stringWithFormat:@"%@%@", randomStr,self.createWalletView.passwordTF.text];
-    NSString *password_sha256 = [encryptStr sha256];
-    NSString *savePassword = [NSString stringWithFormat:@"%@%@", randomStr,password_sha256];
-    
-    
-    
-    
-    model.wallet_shapwd = savePassword;
+    model.wallet_shapwd = [WalletUtil generate_wallet_shapwd_withPassword:self.createWalletView.passwordTF.text];
     model.wallet_uid = [model.wallet_name sha256];
     model.account_info_table_name = [NSString stringWithFormat:@"%@_%@", ACCOUNTS_TABLE,model.wallet_uid];
     [[WalletTableManager walletTable] addRecord: model];
@@ -235,7 +234,7 @@
 //BBLoginChooseWalletFooterViewDelegate
 - (void)confirmBtnDidClick{
     if (self.chooseWalletFooterView.agreeTermBtn.isSelected) {
-        [TOASTVIEW showWithText:@"请勾选同意条款!"];
+        [TOASTVIEW showWithText:NSLocalizedString(@"请勾选同意条款!", nil)];
         return;
     }
     NSArray *localWalletArr = [[WalletTableManager walletTable] selectAllLocalWallet];
@@ -244,8 +243,18 @@
             [[NSUserDefaults standardUserDefaults] setObject: wallet.wallet_uid  forKey:Current_wallet_uid];
             [[NSUserDefaults standardUserDefaults] synchronize];
             NSLog(@"%@", wallet.account_info_table_name);
-            // 如果本地有当前账号对应的钱包
-            [((AppDelegate *)[[UIApplication sharedApplication] delegate]).window setRootViewController: [[BaseTabBarController alloc] init]];
+            
+            NSArray *accountArray = [[AccountsTableManager accountTable ] selectAccountTable];
+            if (accountArray.count > 0) {
+                // 如果本地有当前账号对应的钱包
+                [((AppDelegate *)[[UIApplication sharedApplication] delegate]).window setRootViewController: [[BaseTabBarController alloc] init]];
+                
+            }else{
+                CreateAccountViewController *vc = [[CreateAccountViewController alloc] init];
+                vc.createAccountViewControllerFromVC = CreateAccountViewControllerFromCreatePocketVC;
+                [self.navigationController pushViewController:vc animated:YES];
+                
+            }
             break;
         }
     }
